@@ -65,19 +65,24 @@ export async function GET(request: NextRequest) {
           });
           activeQuery += ') AND mvi.visit_date = @visit_date AND mvi.status = @status';
 
-          const dbRequest = connection.request();
-          
-          // Add parameters
+          // Prepare separate requests to avoid concurrent usage of the same Request instance
+          const visitRequest = connection.request();
           departmentIds.forEach((id, index) => {
-            dbRequest.input(`dept${index}`, sql.VarChar, id);
+            visitRequest.input(`dept${index}`, sql.VarChar, id);
           });
-          dbRequest.input('visit_date', sql.Date, visit_date);
-          dbRequest.input('status', sql.VarChar, 'กำลัง');
+          visitRequest.input('visit_date', sql.Date, visit_date);
 
-          // Execute queries
+          const activeRequest = connection.request();
+          departmentIds.forEach((id, index) => {
+            activeRequest.input(`dept${index}`, sql.VarChar, id);
+          });
+          activeRequest.input('visit_date', sql.Date, visit_date);
+          activeRequest.input('status', sql.VarChar, 'กำลัง');
+
+          // Execute queries in parallel using separate requests
           const [visitResult, activeResult] = await Promise.all([
-            dbRequest.query(visitQuery),
-            dbRequest.query(activeQuery)
+            visitRequest.query(visitQuery),
+            activeRequest.query(activeQuery)
           ]);
 
           // Send data
