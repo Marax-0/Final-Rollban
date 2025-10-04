@@ -34,6 +34,9 @@ interface PayloadData {
   stem_surname: string;
   stem_surname_popup: string;
   stem_surname_table: string;
+  stem_name: string;
+  stem_name_table: string;
+  stem_name_popup: string;
   urgent_color: boolean;
   status_patient: boolean;
   status_check: boolean;
@@ -115,6 +118,9 @@ export default function SettingPage() {
     stem_surname: 'name',
     stem_surname_popup: 'false',
     stem_surname_table: 'name',
+    stem_name: 'name',
+    stem_name_table: 'name',
+    stem_name_popup: 'false',
     urgent_color: true,
     status_patient: true,
     status_check: false,
@@ -167,6 +173,9 @@ export default function SettingPage() {
       stem_surname: 'name',
       stem_surname_popup: 'false',
       stem_surname_table: 'name',
+      stem_name: 'name',
+      stem_name_table: 'name',
+      stem_name_popup: 'false',
       urgent_color: true,
       status_patient: true,
       status_check: false,
@@ -284,26 +293,27 @@ export default function SettingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-slate-50" style={{ backgroundImage: 'linear-gradient(to bottom right, #ffffff, #f8fafc, #f1f5f9)' }}>
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-xl shadow-sm border-b border-slate-200/50">
+      <header className="bg-white shadow-sm border-b" style={{ borderColor: '#e2e8f0' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl shadow-lg shadow-blue-200/50">
+              <div className="p-3 rounded-2xl shadow-md" style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}>
                 <Settings className="w-8 h-8 text-white" />
         </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">การตั้งค่าระบบ</h1>
-                <p className="text-sm text-slate-500 mt-1">จัดการการตั้งค่าหน้าจอแสดงผล</p>
+                <h1 className="text-3xl font-bold" style={{ color: '#043566' }}>การตั้งค่าระบบ</h1>
+                <p className="text-sm text-slate-600 mt-1">จัดการการตั้งค่าหน้าจอแสดงผล</p>
         </div>
             </div>
             <Link
               href="/"
-              className="flex items-center space-x-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl transition-all duration-200 border border-slate-200 shadow-sm hover:shadow-md"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-white hover:bg-slate-50 rounded-xl transition-all duration-200 border shadow-sm hover:shadow font-medium"
+              style={{ color: '#043566', borderColor: '#e2e8f0' }}
             >
               <Home className="w-5 h-5" />
-              <span className="font-medium">กลับหน้าหลัก</span>
+              <span>กลับหน้าหลัก</span>
             </Link>
           </div>
         </div>
@@ -313,53 +323,54 @@ export default function SettingPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-slate-200/60 hover:shadow-md hover:border-blue-300/60 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow p-6 border hover:shadow-md transition-all duration-300" style={{ borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
                 <div>
-                <p className="text-sm text-slate-500 font-medium">จำนวนหน้าจอ</p>
-                <p className="text-3xl font-bold text-slate-800 mt-2">{settings.length}</p>
+                <p className="text-sm text-slate-600 font-medium">จำนวนหน้าจอ</p>
+                <p className="text-3xl font-bold mt-2" style={{ color: '#043566' }}>{settings.length}</p>
                 </div>
-              <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl">
-                <Monitor className="w-8 h-8 text-blue-500" />
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
+                <Monitor className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
             </div>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-slate-200/60 hover:shadow-md hover:border-blue-300/60 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow p-6 border hover:shadow-md transition-all duration-300" style={{ borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 font-medium">แผนกที่ใช้งาน</p>
-                <p className="text-3xl font-bold text-slate-800 mt-2">
+                <p className="text-sm text-slate-600 font-medium">แผนกที่ใช้งาน</p>
+                <p className="text-3xl font-bold mt-2" style={{ color: '#043566' }}>
                   {new Set(settings.map((s) => s.n_department)).size}
                 </p>
               </div>
-              <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl">
-                <Settings className="w-8 h-8 text-blue-500" />
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
+                <Settings className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
             </div>
               </div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-6 border border-slate-200/60 hover:shadow-md hover:border-blue-300/60 transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow p-6 border hover:shadow-md transition-all duration-300" style={{ borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500 font-medium">หน้าจอที่เลือก</p>
-                <p className="text-3xl font-bold text-slate-800 mt-2">{selectedId || '-'}</p>
+                <p className="text-sm text-slate-600 font-medium">หน้าจอที่เลือก</p>
+                <p className="text-3xl font-bold mt-2" style={{ color: '#043566' }}>{selectedId || '-'}</p>
               </div>
-              <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl">
-                <Monitor className="w-8 h-8 text-blue-500" />
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
+                <Monitor className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
             </div>
               </div>
             </div>
 
         {/* Table Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm overflow-hidden border border-slate-200/60">
+        <div className="bg-white rounded-2xl shadow overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
           {/* Table Header */}
-          <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-5 flex items-center justify-between border-b border-slate-200/60">
-            <h2 className="text-xl font-bold text-slate-800">รายการหน้าจอแสดงผล</h2>
+          <div className="px-6 py-5 flex items-center justify-between border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
+            <h2 className="text-xl font-bold" style={{ color: '#043566' }}>รายการหน้าจอแสดงผล</h2>
             <button 
               onClick={handleOpenModal}
-              className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-md shadow-blue-200/50 hover:shadow-lg hover:shadow-blue-300/50"
+              className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow hover:shadow-md"
+              style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
             >
               <Plus className="w-5 h-5" />
               <span>เพิ่มหน้าจอ</span>
@@ -370,39 +381,39 @@ export default function SettingPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <tr className="border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     ID หน้าจอ
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     โรงพยาบาล
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     แผนก
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     หัวตาราง (ซ้าย)
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     หัวตาราง (ขวา)
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     จำนวนห้อง
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     Department ID
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider" style={{ color: '#043566' }}>
                     จัดการ
                   </th>
                 </tr>
               </thead>
-               <tbody className="divide-y divide-slate-100">
+               <tbody className="divide-y" style={{ borderColor: '#e2e8f0' }}>
                  {isLoadingData ? (
                    <tr>
                      <td colSpan={8} className="px-6 py-16 text-center">
                        <div className="flex flex-col items-center gap-4">
-                         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                         <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#043566', borderTopColor: 'transparent' }}></div>
                          <p className="text-slate-600 font-medium">กำลังโหลดข้อมูล...</p>
                        </div>
                      </td>
@@ -411,15 +422,16 @@ export default function SettingPage() {
                    <tr>
                      <td colSpan={8} className="px-6 py-16 text-center">
                        <div className="flex flex-col items-center gap-4">
-                         <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center">
-                           <Monitor className="w-10 h-10 text-blue-400" />
+                         <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
+                           <Monitor className="w-10 h-10" style={{ color: '#043566' }} />
                          </div>
                          <div>
                            <p className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีข้อมูลหน้าจอ</p>
                            <p className="text-sm text-slate-500 mb-4">เริ่มต้นสร้างหน้าจอแสดงผลแรกของคุณ</p>
                            <button
                              onClick={handleOpenModal}
-                             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium shadow-md shadow-blue-200/50"
+                             className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-md"
+                             style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
                            >
                              + เพิ่มหน้าจอแรก
                            </button>
@@ -430,24 +442,36 @@ export default function SettingPage() {
                  ) : settings.map((setting) => (
                   <tr
                     key={setting.id}
-                    className={`hover:bg-blue-50/50 transition-colors duration-150 cursor-pointer ${
-                      selectedId === setting.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                    }`}
+                    className="transition-colors duration-150 cursor-pointer"
+                    style={{
+                      background: selectedId === setting.id ? 'rgba(4, 53, 102, 0.05)' : 'white',
+                      borderLeft: selectedId === setting.id ? '4px solid #043566' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedId !== setting.id) {
+                        e.currentTarget.style.background = 'rgba(4, 53, 102, 0.02)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedId !== setting.id) {
+                        e.currentTarget.style.background = 'white';
+                      }
+                    }}
                     onClick={() => setSelectedId(setting.id)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}>
                           <Monitor className="w-5 h-5 text-white" />
                         </div>
-                        <span className="ml-3 text-sm font-bold text-slate-800">{setting.id}</span>
+                        <span className="ml-3 text-sm font-bold" style={{ color: '#043566' }}>{setting.id}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-slate-700">{setting.n_hospital}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                      <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
                         {setting.n_department}
                       </span>
                     </td>
@@ -459,20 +483,20 @@ export default function SettingPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2 text-sm">
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-medium border border-slate-200">
+                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
                           L: {setting.amount_left}
                         </span>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg font-medium border border-blue-200">
+                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
                           R: {setting.amount_right}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2 text-sm">
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg font-medium border border-slate-200">
+                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
                           L: {setting.query_left}
                         </span>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg font-medium border border-blue-200">
+                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
                           R: {setting.query_right}
                         </span>
                       </div>
@@ -481,14 +505,22 @@ export default function SettingPage() {
                       <div className="flex items-center justify-center space-x-2">
                         <Link
                           href={`/setting/${setting.id}`}
-                          className="p-2.5 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 border border-transparent hover:border-blue-200"
+                          className="p-2.5 rounded-xl transition-all duration-200 border shadow-sm hover:shadow"
+                          style={{ color: '#043566', borderColor: '#e2e8f0' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(4, 53, 102, 0.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
                           title="แก้ไข"
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
                           onClick={() => handleDelete(setting.id)}
-                          className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 border border-transparent hover:border-red-200"
+                          className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 border shadow-sm hover:shadow"
+                          style={{ borderColor: '#e2e8f0' }}
                           title="ลบ"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -502,16 +534,16 @@ export default function SettingPage() {
             </div>
 
           {/* Table Footer */}
-          <div className="bg-slate-50/50 px-6 py-4 border-t border-slate-200">
+          <div className="px-6 py-4 border-t" style={{ background: 'rgba(4, 53, 102, 0.01)', borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-600">
-                แสดง <span className="font-semibold text-slate-800">{settings.length}</span> รายการ
+                แสดง <span className="font-bold" style={{ color: '#043566' }}>{settings.length}</span> รายการ
               </p>
               <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+                <button className="px-4 py-2 text-sm font-medium bg-white border rounded-lg shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200" style={{ color: '#043566', borderColor: '#e2e8f0' }}>
                   ก่อนหน้า
                 </button>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 shadow-sm transition-all duration-200">
+                <button className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 shadow hover:shadow-md transition-all duration-200" style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}>
                   ถัดไป
                 </button>
               </div>
@@ -523,29 +555,30 @@ export default function SettingPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-5 flex items-center justify-between border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-800">เพิ่มหน้าจอใหม่</h2>
+            <div className="px-6 py-5 flex items-center justify-between border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#043566' }}>เพิ่มหน้าจอใหม่</h2>
               <button 
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-2xl transition-colors"
+                className="text-slate-400 hover:text-slate-700 text-2xl transition-colors"
               >
                 ×
               </button>
             </div>
 
             {/* Progress Bar */}
-            <div className="bg-white px-6 py-4 border-b border-slate-100">
+            <div className="bg-white px-6 py-4 border-b" style={{ borderColor: '#e2e8f0' }}>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">ขั้นตอนที่ {currentStep} จาก 3</span>
+                <span className="text-sm font-medium" style={{ color: '#043566' }}>ขั้นตอนที่ {currentStep} จาก 3</span>
                 <div className="flex space-x-2">
                   {[1, 2, 3].map((step) => (
                     <div
                       key={step}
-                      className={`w-8 h-2 rounded-full transition-all duration-300 ${
-                        step <= currentStep ? 'bg-blue-500' : 'bg-slate-200'
-                      }`}
+                      className="w-8 h-2 rounded-full transition-all duration-300 shadow-sm"
+                      style={{
+                        background: step <= currentStep ? '#043566' : '#e2e8f0'
+                      }}
                     />
                   ))}
                 </div>
@@ -557,7 +590,7 @@ export default function SettingPage() {
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">ข้อมูลพื้นฐาน</h3>
+                  <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>ข้อมูลพื้นฐาน</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -627,7 +660,7 @@ export default function SettingPage() {
               {/* Step 2: Table Settings */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">การตั้งค่าตาราง</h3>
+                  <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>การตั้งค่าตาราง</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -698,7 +731,7 @@ export default function SettingPage() {
               {/* Step 3: Display Settings */}
               {currentStep === 3 && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">การตั้งค่าการแสดงผล</h3>
+                  <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>การตั้งค่าการแสดงผล</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Checkboxes */}
@@ -756,16 +789,113 @@ export default function SettingPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Hide Settings */}
+                  <div className="mt-8">
+                    <h4 className="font-medium text-blue-800 mb-4">การตั้งค่าการซ่อนข้อมูล</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในห้อง</h5>
+                        
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_name === 'hide'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_name: e.target.checked ? 'hide' : 'name' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดชื่อห้อง</span>
+                        </label>
+
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_surname === 'true'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_surname: e.target.checked ? 'true' : 'name' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดนามสกุลห้อง</span>
+                        </label>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในตาราง</h5>
+                        
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_name_table === 'hide'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_name_table: e.target.checked ? 'hide' : 'name' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดชื่อตาราง</span>
+                        </label>
+
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_surname_table === 'true'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_surname_table: e.target.checked ? 'true' : 'name' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดนามสกุลตาราง</span>
+                        </label>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในป๊อปอัพ</h5>
+                        
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_name_popup === 'hide'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_name_popup: e.target.checked ? 'hide' : 'false' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดชื่อป๊อปอัพ</span>
+                        </label>
+
+                        <label className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={payload.stem_surname_popup === 'true'}
+                            onChange={(e) => setPayload(prev => ({ 
+                              ...prev, 
+                              stem_surname_popup: e.target.checked ? 'true' : 'false' 
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-blue-700">ปิดนามสกุลป๊อปอัพ</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-slate-50/50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <div className="px-6 py-4 border-t flex items-center justify-between" style={{ background: 'rgba(4, 53, 102, 0.01)', borderColor: '#e2e8f0' }}>
               <button
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="flex items-center space-x-2 px-5 py-2.5 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="flex items-center space-x-2 px-5 py-2.5 text-slate-600 bg-white border rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow transition-all duration-200"
+                style={{ borderColor: '#e2e8f0' }}
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>ก่อนหน้า</span>
@@ -774,7 +904,8 @@ export default function SettingPage() {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all duration-200"
+                  className="px-5 py-2.5 text-slate-600 bg-white border rounded-xl hover:bg-slate-50 shadow-sm hover:shadow transition-all duration-200"
+                  style={{ borderColor: '#e2e8f0' }}
                 >
                   ยกเลิก
                 </button>
@@ -782,7 +913,8 @@ export default function SettingPage() {
                 {currentStep < 3 ? (
                   <button
                     onClick={nextStep}
-                    className="flex items-center space-x-2 px-5 py-2.5 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-sm transition-all duration-200"
+                    className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 shadow hover:shadow-md transition-all duration-200"
+                    style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
                   >
                     <span>ถัดไป</span>
                     <ArrowRight className="w-4 h-4" />
@@ -791,7 +923,8 @@ export default function SettingPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    className="flex items-center space-x-2 px-5 py-2.5 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
+                    className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow hover:shadow-md transition-all duration-200"
+                    style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
                   >
                     {isLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
