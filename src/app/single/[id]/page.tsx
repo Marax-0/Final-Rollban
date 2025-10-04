@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, use, useCallback, useRef } from 'react';
+import { useEffect, useState, use, useCallback, useRef, useMemo } from 'react';
 import styles from './page.module.css';
 import Image from 'next/image';
-import { Hash, User } from 'lucide-react';
+import { Hash, User, Clock } from 'lucide-react';
 import { useNetworkError } from '../../../components/NetworkErrorProvider';
 import { playGoogleTTS, THAI_VOICES } from '../../../lib/google-tts';
 
@@ -75,6 +75,9 @@ interface VisitInfo {
   urgent_color?: string;
   urgent_setup?: string;
   urgent_level?: string;
+  time_call?: string;
+  status_call?: string;
+  arr_r?: boolean | string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -85,6 +88,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   const [callData, setCallData] = useState<VisitInfo | null>(null);
   const [showCallPopup, setShowCallPopup] = useState(false);
   const [skippedData, setSkippedData] = useState<VisitInfo[]>([]);
+  const [recentlyCalledStation, setRecentlyCalledStation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [lastDataHash, setLastDataHash] = useState<string>('');
@@ -299,7 +303,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   // Refs สำหรับเก็บค่าที่ต้องใช้ใน event listener
   const idRef = useRef(id);
   const fetchVisitDataRef = useRef<((departmentLoad: string) => Promise<void>) | null>(null);
-  const fetchActiveDataRef = useRef<((departmentLoad: string) => Promise<void>) | null>(null);
+  const fetchActiveDataRef = useRef<((departmentLoad: string, forceUpdate?: boolean) => Promise<void>) | null>(null);
   const fetchCallDataRef = useRef<((departmentLoad: string) => Promise<void>) | null>(null);
   const fetchSkippedDataRef = useRef<((departmentLoad: string) => Promise<void>) | null>(null);
   
@@ -364,7 +368,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   }, [handleError, fetchWithErrorHandling, getBangkokDate, hasListChanged]);
 
 
-  const fetchActiveData = useCallback(async (departmentLoad: string) => {
+  const fetchActiveData = useCallback(async (departmentLoad: string, forceUpdate = false) => {
     try {
       // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
@@ -381,7 +385,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       });
 
       if (result && result.success) {
-        const changed = hasListChanged(result.data, lastActiveHashRef);
+        const changed = forceUpdate || hasListChanged(result.data, lastActiveHashRef);
         if (changed) {
           const list = Array.isArray(result.data) ? result.data : [];
           if (list.length > 0) {
@@ -427,6 +431,16 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           lastCallHashRef.current = callHash;
           setCallData(result.data);
           setShowCallPopup(true);
+          
+          console.log('🔔 มี Popup เรียก! Station:', result.data.station, '- Refresh activeData ทันที (FORCE UPDATE)');
+          setTimeout(() => {
+            console.log('⏰ Timeout triggered - เริ่ม fetch activeData (หลัง 500ms)');
+            if (fetchActiveDataRef.current) {
+              fetchActiveDataRef.current(departmentLoad, true);
+            } else {
+              console.error('❌ fetchActiveDataRef.current is null!');
+            }
+          }, 500); // รอ 500ms เพื่อให้ DB update เสร็จ
         }
         
         // Play TTS announcement
@@ -600,6 +614,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         // Refresh call data to check if there are more calls
         if (setting?.department_load) {
           fetchCallData(setting.department_load);
+          console.log('✅ TTS จบแล้ว! Refresh activeData เพื่ออัปเดต status_call (FORCE UPDATE)');
+          fetchActiveData(setting.department_load, true);
         }
       } else if (result && !result.success) {
         console.error('Failed to update call status:', result.message);
@@ -607,7 +623,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     } catch (err) {
       handleError(err, 'updateCallStatus');
     }
-  }, [setting?.department_load, fetchCallData, handleError, fetchWithErrorHandling]);
+  }, [setting?.department_load, fetchCallData, fetchActiveData, handleError, fetchWithErrorHandling]);
 
   const playTTS = useCallback(async (data: VisitInfo) => {
     try {
@@ -824,6 +840,22 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // จัดการ recently called station - ให้อยู่บนสุดนาน 15 วินาที
+  useEffect(() => {
+    if (showCallPopup && callData?.station) {
+      const stationName = String(callData.station);
+      console.log('🔔 ตั้งค่า recentlyCalledStation:', stationName);
+      setRecentlyCalledStation(stationName);
+      
+      const timer = setTimeout(() => {
+        console.log('⏱️ หมดเวลา 15 วินาที - clear recentlyCalledStation');
+        setRecentlyCalledStation(null);
+      }, 15000); // 15 วินาที
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showCallPopup, callData]);
+
   useEffect(() => {
     // ป้องกันการทำงานซ้ำ
     if (isInitializedRef.current) return;
@@ -973,6 +1005,132 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     
     return { letter, number };
   }, []);
+
+  // ฟังก์ชันฟอร์แมตเวลาจาก time_call (แสดงเป็น HH:MM)
+  const formatTimeCall = useCallback((timeCall: string | string[] | null | undefined) => {
+    if (!timeCall) return null;
+    try {
+      const timeString = Array.isArray(timeCall) ? timeCall[0] : timeCall;
+      if (!timeString) return null;
+      
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date for time_call:', timeCall);
+        return null;
+      }
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Error formatting time_call:', timeCall, error);
+      return null;
+    }
+  }, []);
+
+  // ฟังก์ชันสำหรับเรียงลำดับ activeData ตาม time_call และ status_call
+  // สำหรับ right column (arr_r = true)
+  const sortActiveDataByTimeCall = useCallback((data: VisitInfo[], callingStation?: string | null) => {
+    const sorted = [...data].sort((a, b) => {
+      // 0. เช็คว่าห้องไหนตรงกับ popup ที่กำลังแสดง ให้ขึ้นบนสุด
+      if (callingStation) {
+        const aIsCalledStation = a.station === callingStation;
+        const bIsCalledStation = b.station === callingStation;
+        
+        if (aIsCalledStation && !bIsCalledStation) {
+          console.log('🔔 A คือห้องที่ถูกเรียก! A ขึ้นบนสุด');
+          return -1;
+        }
+        if (!aIsCalledStation && bIsCalledStation) {
+          console.log('🔔 B คือห้องที่ถูกเรียก! B ขึ้นบนสุด');
+          return 1;
+        }
+      }
+      
+      // 1. เช็ค status_call = '1' หรือ 1 ให้ขึ้นบนสุด (รองรับทั้ง string และ number)
+      const aIsCalling = String(a.status_call) === '1';
+      const bIsCalling = String(b.status_call) === '1';
+      
+      console.log('🔍 เช็คสถานะการเรียก:', {
+        a_station: a.station,
+        a_status_call: a.status_call,
+        a_type: typeof a.status_call,
+        a_isCalling: aIsCalling,
+        b_station: b.station,
+        b_status_call: b.status_call,
+        b_type: typeof b.status_call,
+        b_isCalling: bIsCalling
+      });
+      
+      if (aIsCalling && !bIsCalling) {
+        console.log('✅ A กำลังถูกเรียก! A ขึ้นบนสุด');
+        return -1; // a อยู่ข้างบน
+      }
+      if (!aIsCalling && bIsCalling) {
+        console.log('✅ B กำลังถูกเรียก! B ขึ้นบนสุด');
+        return 1; // b อยู่ข้างบน
+      }
+      
+      // 2. ถ้าทั้งคู่เป็น calling หรือไม่ calling ให้เรียงตาม time_call (มากไปน้อย = DESC)
+      // รองรับ time_call ที่เป็น array
+      const getTimeString = (timeCall: string | string[] | null | undefined) => {
+        if (!timeCall) return null;
+        return Array.isArray(timeCall) ? timeCall[0] : timeCall;
+      };
+      
+      const timeAString = getTimeString(a.time_call);
+      const timeBString = getTimeString(b.time_call);
+      const timeA = timeAString ? new Date(timeAString).getTime() : 0;
+      const timeB = timeBString ? new Date(timeBString).getTime() : 0;
+      
+      console.log('⏰ เรียงตามเวลา:', {
+        a_time: timeAString,
+        b_time: timeBString,
+        result: timeB - timeA > 0 ? 'B ใหม่กว่า' : 'A ใหม่กว่า'
+      });
+      
+      return timeB - timeA; // เรียงจากมากไปน้อย (ล่าสุดอยู่บน)
+    });
+    
+    return sorted;
+  }, []);
+
+  // เรียงลำดับ activeData สำหรับ right column
+  // ตรวจสอบว่า table_arr2 = 'true' หรือ arr_r = true
+  // ต้องวาง useMemo ก่อน early returns เพื่อไม่ให้ลำดับของ Hooks เปลี่ยน
+  const sortedActiveData = useMemo(() => {
+    const currentSetting = setting || defaultSetting;
+    const shouldSort = currentSetting.table_arr2 === 'true';
+    
+    console.log('🔁 useMemo ถูกเรียก! recentlyCalledStation:', recentlyCalledStation);
+    
+    if (shouldSort && activeData.length > 0) {
+      console.log('🔄 เรียงลำดับห้อง (table_arr2 = true) - activeData.length:', activeData.length);
+      
+      // ใช้ recentlyCalledStation แทน (จะอยู่นาน 15 วินาที)
+      if (recentlyCalledStation) {
+        console.log('🔔 ห้องที่ถูกเรียก (จะอยู่บนสุดนาน 15 วินาที):', recentlyCalledStation);
+      } else {
+        console.log('⭐ ไม่มีห้องที่ถูกเรียก - เรียงตามเวลาปกติ');
+      }
+      
+      console.log('📋 ก่อนเรียง:', activeData.map((d: VisitInfo) => ({ 
+        station: d.station, 
+        vn: d.vn,
+        time_call: d.time_call, 
+        status_call: d.status_call,
+        status_call_type: typeof d.status_call
+      })));
+      const sorted = sortActiveDataByTimeCall(activeData, recentlyCalledStation);
+      console.log('✅ หลังเรียง:', sorted.map((d: VisitInfo) => ({ 
+        station: d.station, 
+        vn: d.vn,
+        time_call: d.time_call, 
+        status_call: d.status_call 
+      })));
+      return sorted;
+    }
+    return activeData;
+  }, [activeData, setting, defaultSetting, sortActiveDataByTimeCall, recentlyCalledStation]);
 
   if (loading) {
     return (
@@ -1181,10 +1339,61 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           </h2>
           
           <div className={styles.serviceCards}>
-            {tableNames.length > 0 ? (
+            {currentSetting.table_arr2 === 'true' ? (
+              // ถ้าเปิดการเรียงห้อง ให้ map จาก sortedActiveData โดยตรง
+              sortedActiveData.map((activePatient, index) => (
+                <div key={index} className={styles.serviceCard}>
+                  <div className={styles.serviceInfo}>
+                    <span className={styles.serviceText}>
+                      {activePatient.station || '-'}
+                    </span>
+                    {activePatient && currentSetting.stem_surname !== 'name' && (
+                      <div className={styles.patientInfo}>
+                        <span 
+                          className={styles.patientName}
+                          style={{ 
+                            color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                              ? activePatient.urgent_color
+                              : undefined
+                          }}
+                        >
+                          {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                        </span>
+                        {activePatient.time_call && formatTimeCall(activePatient.time_call) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '0.85rem', opacity: 0.8 }}>
+                            <Clock size={14} />
+                            <span>{formatTimeCall(activePatient.time_call)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div 
+                    className={styles.actionBox}
+                    style={{ 
+                      backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                        ? activePatient.urgent_color
+                        : '#0066AA'
+                    }}
+                  >
+                    {activePatient ? (
+                      <div className={styles.queueNumberSplit}>
+                        <span className={styles.queueLetter}>
+                          {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                        </span>
+                        <span className={styles.queueNumber}>
+                          {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            ) : tableNames.length > 0 ? (
+              // ถ้าไม่เปิดการเรียง ให้ใช้วิธีเดิม (map จาก tableNames)
               tableNames.map((tableName, index) => {
                 // Find active patient data for this station
-                const activePatient = activeData.find(visit => 
+                const activePatient = sortedActiveData.find(visit => 
                   visit.station === tableName.trim() || 
                   visit.station === `โต๊ะ${tableName.trim()}` ||
                   visit.station === `${tableName.trim()}`
@@ -1208,6 +1417,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                           >
                             {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
                           </span>
+                          {activePatient.time_call && formatTimeCall(activePatient.time_call) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '0.85rem', opacity: 0.8 }}>
+                              <Clock size={14} />
+                              <span>{formatTimeCall(activePatient.time_call)}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1237,7 +1452,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
               // Fallback to default tables if station_l is empty
               Array.from({ length: currentSetting.amount_boxL || 3 }, (_, index) => {
                 const stationName = `${currentSetting.n_table || 'โต๊ะซักประวัติ'} ${index + 1}`;
-                const activePatient = activeData.find(visit => 
+                const activePatient = sortedActiveData.find(visit => 
                   visit.station === stationName
                 );
                 
@@ -1259,6 +1474,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                           >
                             {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
                           </span>
+                          {activePatient.time_call && formatTimeCall(activePatient.time_call) && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '0.85rem', opacity: 0.8 }}>
+                              <Clock size={14} />
+                              <span>{formatTimeCall(activePatient.time_call)}</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1279,7 +1500,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                             {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
                           </span>
                         </div>
-                      ) : null} 
+                      ) : null}
                     </div>
                   </div>
                 );
