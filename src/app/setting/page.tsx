@@ -788,6 +788,36 @@ export default function SettingPage() {
                         </label>
                       ))}
                     </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-blue-800">การแสดงข้อมูลเพิ่มเติม</h4>
+                      
+                      <label className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={payload.set_descrip}
+                          onChange={(e) => setPayload(prev => ({ 
+                            ...prev, 
+                            set_descrip: e.target.checked 
+                          }))}
+                          className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-blue-700">แสดง Description</span>
+                      </label>
+
+                      <label className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={payload.set_notice}
+                          onChange={(e) => setPayload(prev => ({ 
+                            ...prev, 
+                            set_notice: e.target.checked 
+                          }))}
+                          className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-blue-700">แสดง Notice</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Hide Settings */}

@@ -438,6 +438,38 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                     </label>
                   ))}
                 </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium" style={{ color: '#043566' }}>การแสดงข้อมูลเพิ่มเติม</h4>
+                  
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={payload.set_descrip}
+                      onChange={(e) => setPayload(prev => ({ 
+                        ...prev, 
+                        set_descrip: e.target.checked 
+                      }))}
+                      className="w-4 h-4 rounded border-gray-300 focus:ring-2"
+                      style={{ accentColor: '#043566' }}
+                    />
+                    <span className="text-sm text-slate-700">แสดง Description</span>
+                  </label>
+
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={payload.set_notice}
+                      onChange={(e) => setPayload(prev => ({ 
+                        ...prev, 
+                        set_notice: e.target.checked 
+                      }))}
+                      className="w-4 h-4 rounded border-gray-300 focus:ring-2"
+                      style={{ accentColor: '#043566' }}
+                    />
+                    <span className="text-sm text-slate-700">แสดง Notice</span>
+                  </label>
+                </div>
               </div>
             </div>
 

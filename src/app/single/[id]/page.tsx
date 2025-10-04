@@ -611,10 +611,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const playTTS = useCallback(async (data: VisitInfo) => {
     try {
-      // สร้างข้อความสำหรับ TTS: "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] ที่ [สถานี]"
+      // สร้างข้อความสำหรับ TTS: "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] [Description] ที่ [สถานี] [Notice]"
       const queueNumber = String(data.visit_q_no || '').split('').join(' ');
       const patientName = data.name || '';
       const patientSurname = data.surname || '';
+      const description = data.description || data.descrip || '';
+      const notice = data.notice || '';
       const station = data.station || 'จุดบริการ';
       
       let text = '';
@@ -623,13 +625,40 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       const currentSetting = setting || defaultSetting;
       if (currentSetting.c_sound === 'true') {
         // c_sound = true: พูดแค่ "คิว"
-        text = `ขอเชิญหมายเลข ${queueNumber} ที่ ${station} ค่ะ`;
+        text = `ขอเชิญหมายเลข ${queueNumber}`;
+        // เพิ่ม Description ถ้า set_descrip = true
+        if (currentSetting.set_descrip === 'true' && description) {
+          text += ` ${description}`;
+        }
+        text += ` ที่ ${station} ค่ะ`;
+        // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+        if (currentSetting.set_notice === 'true' && notice) {
+          text += ` ${notice}`;
+        }
       } else if (currentSetting.b_sound === 'true') {
         // b_sound = true: พูดแค่ "คิว [หมายเลข] [ชื่อ]"
-        text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ที่ ${station} ค่ะ`;
+        text = `ขอเชิญหมายเลข ${queueNumber} ${patientName}`;
+        // เพิ่ม Description ถ้า set_descrip = true
+        if (currentSetting.set_descrip === 'true' && description) {
+          text += ` ${description}`;
+        }
+        text += ` ที่ ${station} ค่ะ`;
+        // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+        if (currentSetting.set_notice === 'true' && notice) {
+          text += ` ${notice}`;
+        }
       } else {
-        // a_sound = true หรือ default: พูด "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] ที่ [สถานี]"
-        text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname} ที่ ${station} ค่ะ`;
+        // a_sound = true หรือ default: พูด "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] [Description] ที่ [สถานี] [Notice]"
+        text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname}`;
+        // เพิ่ม Description ถ้า set_descrip = true
+        if (currentSetting.set_descrip === 'true' && description) {
+          text += ` ${description}`;
+        }
+        text += ` ที่ ${station} ค่ะ`;
+        // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+        if (currentSetting.set_notice === 'true' && notice) {
+          text += ` ${notice}`;
+        }
       }
       
       // ใช้ Google TTS แทน browser TTS
@@ -659,6 +688,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         const queueNumber = String(data.visit_q_no || '').split('').join(' ');
         const patientName = data.name || '';
         const patientSurname = data.surname || '';
+        const description = data.description || data.descrip || '';
+        const notice = data.notice || '';
         const station = data.station || 'จุดบริการ';
         
         let text = '';
@@ -667,13 +698,40 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         const currentSetting = setting || defaultSetting;
         if (currentSetting.c_sound === 'true') {
           // c_sound = true: พูดแค่ "คิว"
-          text = `ขอเชิญหมายเลข ${queueNumber} ที่ ${station} ค่ะ`;
+          text = `ขอเชิญหมายเลข ${queueNumber}`;
+          // เพิ่ม Description ถ้า set_descrip = true
+          if (currentSetting.set_descrip === 'true' && description) {
+            text += ` ${description}`;
+          }
+          text += ` ที่ ${station} ค่ะ`;
+          // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+          if (currentSetting.set_notice === 'true' && notice) {
+            text += ` ${notice}`;
+          }
         } else if (currentSetting.b_sound === 'true') {
           // b_sound = true: พูดแค่ "คิว [หมายเลข] [ชื่อ]"
-          text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ที่ ${station} ค่ะ`;
+          text = `ขอเชิญหมายเลข ${queueNumber} ${patientName}`;
+          // เพิ่ม Description ถ้า set_descrip = true
+          if (currentSetting.set_descrip === 'true' && description) {
+            text += ` ${description}`;
+          }
+          text += ` ที่ ${station} ค่ะ`;
+          // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+          if (currentSetting.set_notice === 'true' && notice) {
+            text += ` ${notice}`;
+          }
         } else {
-          // a_sound = true หรือ default: พูด "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] ที่ [สถานี]"
-          text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname} ที่ ${station} ค่ะ`;
+          // a_sound = true หรือ default: พูด "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] [Description] ที่ [สถานี] [Notice]"
+          text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname}`;
+          // เพิ่ม Description ถ้า set_descrip = true
+          if (currentSetting.set_descrip === 'true' && description) {
+            text += ` ${description}`;
+          }
+          text += ` ที่ ${station} ค่ะ`;
+          // เพิ่ม Notice ถ้า set_notice = true (ต่อท้ายสุด)
+          if (currentSetting.set_notice === 'true' && notice) {
+            text += ` ${notice}`;
+          }
         }
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'th-TH';
