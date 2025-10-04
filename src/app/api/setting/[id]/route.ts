@@ -78,16 +78,27 @@ export async function GET(
       query_right: data.query_right,
       ads: data.ads,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    let message = 'Unknown error';
+    let stack: string | undefined = undefined;
+    if (error instanceof Error) {
+      message = error.message;
+      stack = error.stack;
+    } else if (typeof error === 'string') {
+      message = error;
+    }
+
     console.error('❌ Error:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error message:', message);
+    if (stack) {
+      console.error('Error stack:', stack);
+    }
     
     return NextResponse.json(
       {
         success: false,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message,
-        error: error.message,
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + message,
+        error: message,
       },
       { status: 500 }
     );

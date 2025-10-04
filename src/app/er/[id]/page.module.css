@@ -89,8 +89,8 @@
   bottom: 0;
   width:4px;
   box-shadow: 4px 0 6px rgba(0, 0, 0, 0.229);
-  background: #0e2e99;
-  background: linear-gradient(0deg, rgb(51, 82, 224) 0%, rgb(12, 53, 176) 35%, rgba(110, 231, 255, 1) 100%);
+  background: #332975;
+  background: linear-gradient(0deg, rgb(25, 56, 196) 0%, rgb(46, 46, 217) 35%, rgba(110, 231, 255, 1) 100%);
   border-radius: 0 15px 15px 0;
 }
 /* Middle Column - Active Patients */
@@ -287,8 +287,8 @@
 
 /* Right Column - Currently Receiving Service */
 .serviceSection {
-  background: #0e2e99;
-  background: linear-gradient(29deg, rgb(14, 30, 100) 0%, rgb(20, 88, 165) 35%, rgb(110, 202, 255) 100%);
+  background: #332975;
+  background: linear-gradient(8deg, rgba(51, 41, 117, 1) 0%, rgba(12, 12, 145, 1) 35%, rgba(110, 231, 255, 1) 100%);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -303,9 +303,9 @@
 }
 
 .serviceCards {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
 }
 
 .serviceCard {

@@ -73,6 +73,11 @@ interface VisitInfo {
   urgent_color?: string;
   urgent_setup?: string;
   urgent_level?: string;
+  // ฟิลด์ที่ใช้จริงในหน้า
+  station?: string;
+  visit_q_no?: string | number;
+  name?: string;
+  surname?: string;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -100,7 +105,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   const [defaultSetting] = useState<Setting>({
     id: 0,
     department: 'ตรวจโรคทั่วไป',
-    n_hospital: 'โรงพยาบาลชนบท',
+    n_hospital: 'Mock',
     n_room: 'ห้องตรวจ',
     n_table: 'จุดซักประวัติ',
     n_listtable: '',
@@ -170,20 +175,9 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     return JSON.stringify(hashData);
   }, []);
 
-  // legacy: checkDataChanges (unused)
-  // const checkDataChanges = useCallback((newData: VisitInfo[], dataType: string) => {
-  //   const newHash = createDataHash(newData);
-  //   if (lastDataHash !== newHash) {
-  //     setLastDataHash(newHash);
-  //     return true;
-  //   }
-  //   return false;
-  // }, [lastDataHash, createDataHash]);
-
-  // เช็คการเปลี่ยนแปลงต่อชุดข้อมูล และคืน true เมื่อเปลี่ยนจริง
-  const hasListChanged = useCallback((data: VisitInfo[] | undefined | null, hashRef: { current: string }) => {
-    const list = Array.isArray(data) ? data : [];
-    const newHash = createDataHash(list);
+  // ฟังก์ชันเช็คการเปลี่ยนแปลงของข้อมูลแบบอิสระต่อชุดข้อมูล
+  const hasListChanged = useCallback((data: VisitInfo[], hashRef: { current: string }) => {
+    const newHash = createDataHash(data);
     if (hashRef.current !== newHash) {
       hashRef.current = newHash;
       return true;
@@ -317,12 +311,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const fetchVisitData = useCallback(async (departmentLoad: string) => {
     try {
-      console.log('🔥 fetchVisitData ถูกเรียก! department:', departmentLoad);
-      
       // Get current date in yyyy-mm-dd format (Thailand timezone)
       const today = getBangkokDate();
-      
-      console.log('📅 กำลังดึงข้อมูล visit_date:', today, 'department:', departmentLoad);
       
       const result = await fetchWithErrorHandling('/api/data', {
         method: 'POST',
@@ -335,20 +325,10 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         }),
       });
       
-      console.log('📦 Visit data received:', result?.count || 0, 'รายการ');
-
       if (result && result.success) {
         const changed = hasListChanged(result.data, lastVisitHashRef);
         if (changed) {
-          const list = Array.isArray(result.data) ? result.data : [];
-          if (list.length > 0) {
-            console.log('Visit data has changed, updating...');
-            setVisitData(list);
-          } else {
-            console.log('Visit data changed to empty, keep previous on screen');
-          }
-        } else {
-          console.log('No changes detected in visit data');
+          setVisitData(result.data);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch visit data:', result.error);
@@ -361,9 +341,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const fetchActiveData = useCallback(async (departmentLoad: string) => {
     try {
-      // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
-      
       const result = await fetchWithErrorHandling('/api/data/active', {
         method: 'POST',
         headers: {
@@ -378,12 +356,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       if (result && result.success) {
         const changed = hasListChanged(result.data, lastActiveHashRef);
         if (changed) {
-          const list = Array.isArray(result.data) ? result.data : [];
-          if (list.length > 0) {
-            setActiveData(list);
-          } else {
-            console.log('Active data changed to empty, keep previous on screen');
-          }
+          setActiveData(result.data);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch active data:', result.error);
@@ -395,9 +368,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const fetchCallData = useCallback(async (departmentLoad: string) => {
     try {
-      // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
-      
       const result = await fetchWithErrorHandling('/api/data/call', {
         method: 'POST',
         headers: {
@@ -422,11 +393,6 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           setCallData(result.data);
           setShowCallPopup(true);
         }
-        
-        // Play TTS announcement
-        if (playTTSRef.current) {
-          playTTSRef.current(result.data);
-        }
       } else if (result && !result.success) {
         console.error('Failed to fetch call data:', result.error);
         setCallData(null);
@@ -442,9 +408,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const fetchSkippedData = useCallback(async (departmentLoad: string) => {
     try {
-      // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
-      
       const result = await fetchWithErrorHandling('/api/data/skipped', {
         method: 'POST',
         headers: {
@@ -459,15 +423,11 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       if (result && result.success) {
         const changed = hasListChanged(result.data, lastSkippedHashRef);
         if (changed) {
-          const list = Array.isArray(result.data) ? result.data : [];
-          if (list.length > 0) {
-            setSkippedData(list);
-          } else {
-            console.log('Skipped data changed to empty, keep previous on screen');
-          }
+          setSkippedData(result.data);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch skipped data:', result.error);
+        setSkippedData([]);
       }
     } catch (err) {
       handleError(err, 'fetchSkippedData');
@@ -568,6 +528,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       clearInterval(refreshInterval);
       setRefreshInterval(null);
     }
+    autoRefreshStartedRef.current = false;
   }, [refreshInterval]);
 
   // ฟังก์ชันสำหรับหยุด setting refresh
@@ -828,7 +789,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
     eventSource.onopen = () => {
       console.log('✅ SSE Connection opened');
-      // หยุด auto refresh เมื่อเชื่อมต่อ SSE สำเร็จ เพื่อลดการกระพริบและการล้างข้อมูล
+      // เมื่อเชื่อมต่อ SSE แล้ว หยุด auto refresh เพื่อลดการกระพริบ
       stopAutoRefresh();
     };
 
@@ -844,12 +805,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         
         if (data.type === 'update') {
           console.log('📡 SSE Update received');
-          const visitList = Array.isArray(data.visitData) ? data.visitData : [];
-          const activeList = Array.isArray(data.activeData) ? data.activeData : [];
-          if (visitList.length > 0 && hasListChanged(visitList, lastVisitHashRef)) {
+          const visitList = data.visitData || [];
+          const activeList = data.activeData || [];
+          if (hasListChanged(visitList, lastVisitHashRef)) {
             setVisitData(visitList);
           }
-          if (activeList.length > 0 && hasListChanged(activeList, lastActiveHashRef)) {
+          if (hasListChanged(activeList, lastActiveHashRef)) {
             setActiveData(activeList);
           }
           
@@ -883,10 +844,11 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         console.log('❓ SSE Connection state unknown, attempting to reconnect...');
       }
       
-      // เริ่ม auto refresh สำรองเมื่อ SSE มีปัญหา
+      // เมื่อเกิด error ให้เริ่ม auto refresh สำรอง
       if (setting?.department_load) {
         startAutoRefresh(setting.department_load);
       }
+      
       // ไม่ต้องปิด connection ทันที ให้ระบบพยายาม reconnect
       // eventSource.close();
     };
@@ -894,7 +856,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     return () => {
       eventSource.close();
     };
-  }, [setting, fetchCallData, fetchSkippedData, hasListChanged, startAutoRefresh, stopAutoRefresh]);
+  }, [setting, fetchCallData, fetchSkippedData, stopAutoRefresh, startAutoRefresh, hasListChanged, lastVisitHashRef, lastActiveHashRef]);
 
   // Function to split queue number into letter and number
   const splitQueueNumber = useCallback((queueNo: string | number | null | undefined) => {
@@ -944,8 +906,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const currentSetting = setting || defaultSetting;
 
-  // Parse station_l to get table names
-  const tableNames = currentSetting.station_l ? currentSetting.station_l.split(',') : [];
+  // กำหนดรายชื่อห้อง ER แบบคงที่ 2x4: ER-A ถึง ER-H
+  const erRooms = ['ER-A', 'ER-B', 'ER-C', 'ER-D', 'ER-E', 'ER-F', 'ER-G', 'ER-H'];
 
   return (
     <div className={styles.container}>
@@ -1008,7 +970,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
             <tbody>
               {visitData.length > 0 ? (
                 visitData.map((visit, index) => (
-                  <tr key={visit.id || index} className={styles.tableRow}>
+                  <tr
+                    key={String(
+                      visit.id ?? visit.visit_q_no ?? `${visit.name}-${visit.surname}-${visit.station}-${index}`
+                    )}
+                    className={styles.tableRow}
+                  >
                     <td className={styles.tableCell}>
                       <div className={styles.queueNumberContainer}>
                         {currentSetting.urgent_color === 'true' && visit.urgent_color && (
@@ -1100,110 +1067,49 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           </h2>
           
           <div className={styles.serviceCards}>
-            {tableNames.length > 0 ? (
-              tableNames.map((tableName, index) => {
-                // Find active patient data for this station
-                const activePatient = activeData.find(visit => 
-                  visit.station === tableName.trim() || 
-                  visit.station === `โต๊ะ${tableName.trim()}` ||
-                  visit.station === `${tableName.trim()}`
-                );
-                
-                return (
-                  <div key={index} className={styles.serviceCard}>
-                    <div className={styles.serviceInfo}>
-                      <span className={styles.serviceText}>
-                        {tableName.trim()}
-                      </span>
-                      {activePatient && currentSetting.stem_surname !== 'name' && (
-                        <div className={styles.patientInfo}>
-                          <span 
-                            className={styles.patientName}
-                            style={{ 
-                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
-                                ? activePatient.urgent_color
-                                : undefined
-                            }}
-                          >
-                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div 
-                      className={styles.actionBox}
-                      style={{ 
-                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
-                          ? activePatient.urgent_color
-                          : '#0066AA'
-                      }}
-                    >
-                      {activePatient ? (
-                        <div className={styles.queueNumberSplit}>
-                          <span className={styles.queueLetter}>
-                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
-                          </span>
-                          <span className={styles.queueNumber}>
-                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
+            {erRooms.map((room) => {
+              const activePatient = activeData.find(visit => visit.station?.trim() === room);
+              return (
+                <div key={room} className={styles.serviceCard}>
+                  <div className={styles.serviceInfo}>
+                    <span className={styles.serviceText}>{room}</span>
+                    {activePatient && currentSetting.stem_surname !== 'name' && (
+                      <div className={styles.patientInfo}>
+                        <span 
+                          className={styles.patientName}
+                          style={{ 
+                            color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                              ? activePatient.urgent_color
+                              : undefined
+                          }}
+                        >
+                          {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                );
-              })
-            ) : (
-              // Fallback to default tables if station_l is empty
-              Array.from({ length: currentSetting.amount_boxL || 3 }, (_, index) => {
-                const stationName = `${currentSetting.n_table || 'โต๊ะซักประวัติ'} ${index + 1}`;
-                const activePatient = activeData.find(visit => 
-                  visit.station === stationName
-                );
-                
-                return (
-                  <div key={index} className={styles.serviceCard}>
-                    <div className={styles.serviceInfo}>
-                      <span className={styles.serviceText}>
-                        {stationName}
-                      </span>
-                      {activePatient && (
-                        <div className={styles.patientInfo}>
-                          <span 
-                            className={styles.patientName}
-                            style={{ 
-                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
-                                ? activePatient.urgent_color
-                                : undefined
-                            }}
-                          >
-                            {activePatient.name || '-'} {activePatient.surname || '-'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div 
-                      className={styles.actionBox}
-                      style={{ 
-                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
-                          ? activePatient.urgent_color
-                          : '#0066AA'
-                      }}
-                    >
-                      {activePatient ? (
-                        <div className={styles.queueNumberSplit}>
-                          <span className={styles.queueLetter}>
-                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
-                          </span>
-                          <span className={styles.queueNumber}>
-                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
-                          </span>
-                        </div>
-                      ) : null} 
-                    </div>
+                  <div 
+                    className={styles.actionBox}
+                    style={{ 
+                      backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                        ? activePatient.urgent_color
+                        : '#0066AA'
+                    }}
+                  >
+                    {activePatient ? (
+                      <div className={styles.queueNumberSplit}>
+                        <span className={styles.queueLetter}>
+                          {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                        </span>
+                        <span className={styles.queueNumber}>
+                          {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })}
           </div>
         </section>
       </main>
@@ -1247,7 +1153,10 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
             <div className={styles.skippedQueueContainer}>
               <div className={styles.skippedQueueList}>
                 {skippedData.map((item, index) => (
-                  <div key={item.id || index} className={styles.skippedQueueItem}>
+                  <div
+                    key={String(item.id ?? item.visit_q_no ?? `${item.name}-${item.surname}-${index}`)}
+                    className={styles.skippedQueueItem}
+                  >
                     <span className={styles.skippedQueueNumber}>
                       {item.visit_q_no}
                     </span>
