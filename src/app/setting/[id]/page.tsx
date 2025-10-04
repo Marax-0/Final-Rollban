@@ -517,15 +517,15 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={payload.stem_name_popup === 'hide'}
+                      checked={payload.stem_name_popup === 'true'}
                       onChange={(e) => setPayload(prev => ({ 
                         ...prev, 
-                        stem_name_popup: e.target.checked ? 'hide' : 'false' 
+                        stem_name_popup: e.target.checked ? 'true' : 'false' 
                       }))}
                       className="w-4 h-4 rounded border-gray-300 focus:ring-2"
                       style={{ accentColor: '#043566' }}
                     />
-                    <span className="text-sm text-slate-700">ปิดชื่อป๊อปอัพ</span>
+                    <span className="text-sm text-slate-700">แสดงชื่อป๊อปอัพ</span>
                   </label>
 
                   <label className="flex items-center space-x-3 cursor-pointer">

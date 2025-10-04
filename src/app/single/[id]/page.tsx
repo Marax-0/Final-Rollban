@@ -33,6 +33,7 @@ interface Setting {
   stem_surname_table: string;
   stem_surname_popup: string;
   stem_name_table: string | null;
+  stem_name_popup: string | null;
   station_l: string;
   station_r: string;
   stem_popup: string;
@@ -117,6 +118,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     stem_surname_table: 'false',
     stem_surname_popup: 'false',
     stem_name_table: null,
+    stem_name_popup: null,
     station_l: 'โต๊ะซักประวัติ 1,โต๊ะซักประวัติ 2,โต๊ะซักประวัติ 3',
     station_r: '',
     stem_popup: 'false',
@@ -202,7 +204,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       'department_load', 'department', 'n_hospital', 'n_room', 'n_table',
       'station_l', 'station_r', 'urgent_color', 'urgent_level', 'status_patient',
       'stem_surname', 'stem_surname_table', 'stem_surname_popup', 'stem_popup',
-      'stem_name', 'stem_name_table',
+      'stem_name', 'stem_name_table', 'stem_name_popup',
       'a_sound', 'b_sound', 'c_sound', 'time_wait', 'amount_boxL', 'amount_boxR'
     ];
     
@@ -647,7 +649,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       // ปิด popup หลังจาก TTS พูดจบ
       setTimeout(() => {
         setShowCallPopup(false);
-      }, 500); // รอ 0.5 วินาทีหลังจาก TTS จบ
+      }, 5000); // รอ 5 วินาทีหลังจาก TTS จบ
       
     } catch (error) {
       console.error('Error playing TTS:', error);
@@ -684,7 +686,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           }
           setTimeout(() => {
             setShowCallPopup(false);
-          }, 500);
+          }, 5000);
         };
         
         speechSynthesis.speak(utterance);
