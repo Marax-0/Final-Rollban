@@ -32,6 +32,7 @@ interface Setting {
   stem_surname: string;
   stem_surname_table: string;
   stem_surname_popup: string;
+  stem_name_table: string | null;
   station_l: string;
   station_r: string;
   stem_popup: string;
@@ -115,6 +116,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     stem_surname: 'false',
     stem_surname_table: 'false',
     stem_surname_popup: 'false',
+    stem_name_table: null,
     station_l: 'โต๊ะซักประวัติ 1,โต๊ะซักประวัติ 2,โต๊ะซักประวัติ 3',
     station_r: '',
     stem_popup: 'false',
@@ -200,6 +202,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       'department_load', 'department', 'n_hospital', 'n_room', 'n_table',
       'station_l', 'station_r', 'urgent_color', 'urgent_level', 'status_patient',
       'stem_surname', 'stem_surname_table', 'stem_surname_popup', 'stem_popup',
+      'stem_name', 'stem_name_table',
       'a_sound', 'b_sound', 'c_sound', 'time_wait', 'amount_boxL', 'amount_boxR'
     ];
     
@@ -1039,7 +1042,21 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                               : '#0c266d' 
                           }}
                         >
-                          {visit.name || '-'} {currentSetting.stem_surname_table === 'true' ? maskSurname(visit.surname) : (visit.surname || '-')}
+                          {(currentSetting.stem_name_table !== 'hide' || 
+                            (currentSetting.stem_surname_table === 'true' && currentSetting.stem_name_table === 'hide')) && 
+                            (visit.name || '-')
+                          }
+                          {(currentSetting.stem_name_table !== 'hide' || 
+                            (currentSetting.stem_surname_table === 'true' && currentSetting.stem_name_table === 'hide')) && 
+                            ' '
+                          }
+                          {(currentSetting.stem_surname_table === 'true' && 
+                            (currentSetting.stem_name_table === 'true' || currentSetting.stem_name_table === 'hide')) 
+                            ? (visit.surname || '-')
+                            : currentSetting.stem_surname_table === 'true' 
+                              ? maskSurname(visit.surname) 
+                              : (visit.surname || '-')
+                          }
                         </span>
                       </td>
                     )}
@@ -1166,7 +1183,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                       <span className={styles.serviceText}>
                         {stationName}
                       </span>
-                      {activePatient && (
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
                         <div className={styles.patientInfo}>
                           <span 
                             className={styles.patientName}
@@ -1176,7 +1193,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                                 : undefined
                             }}
                           >
-                            {activePatient.name || '-'} {activePatient.surname || '-'}
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
                           </span>
                         </div>
                       )}
