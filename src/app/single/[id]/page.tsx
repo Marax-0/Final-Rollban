@@ -343,10 +343,10 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           const list = Array.isArray(result.data) ? result.data : [];
           if (list.length > 0) {
             console.log('Visit data has changed, updating...');
-            setVisitData(list);
           } else {
-            console.log('Visit data changed to empty, keep previous on screen');
+            console.log('Visit data changed to empty, clearing on screen');
           }
+          setVisitData(list);
         } else {
           console.log('No changes detected in visit data');
         }
@@ -380,10 +380,11 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         if (changed) {
           const list = Array.isArray(result.data) ? result.data : [];
           if (list.length > 0) {
-            setActiveData(list);
+            console.log('Active data has changed, updating...');
           } else {
-            console.log('Active data changed to empty, keep previous on screen');
+            console.log('Active data changed to empty, clearing on screen');
           }
+          setActiveData(list);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch active data:', result.error);
@@ -461,10 +462,11 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         if (changed) {
           const list = Array.isArray(result.data) ? result.data : [];
           if (list.length > 0) {
-            setSkippedData(list);
+            console.log('Skipped data has changed, updating...');
           } else {
-            console.log('Skipped data changed to empty, keep previous on screen');
+            console.log('Skipped data changed to empty, clearing on screen');
           }
+          setSkippedData(list);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch skipped data:', result.error);
@@ -819,7 +821,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     if (!setting || !setting.department_load) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getBangkokDate();
     const sseUrl = `/api/data/realtime?department_load=${encodeURIComponent(setting.department_load)}&visit_date=${today}`;
     
     console.log('🔗 Connecting to SSE:', sseUrl);
@@ -846,10 +848,12 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           console.log('📡 SSE Update received');
           const visitList = Array.isArray(data.visitData) ? data.visitData : [];
           const activeList = Array.isArray(data.activeData) ? data.activeData : [];
-          if (visitList.length > 0 && hasListChanged(visitList, lastVisitHashRef)) {
+          const visitChanged = hasListChanged(visitList, lastVisitHashRef);
+          const activeChanged = hasListChanged(activeList, lastActiveHashRef);
+          if (visitChanged) {
             setVisitData(visitList);
           }
-          if (activeList.length > 0 && hasListChanged(activeList, lastActiveHashRef)) {
+          if (activeChanged) {
             setActiveData(activeList);
           }
           
@@ -894,7 +898,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     return () => {
       eventSource.close();
     };
-  }, [setting, fetchCallData, fetchSkippedData, hasListChanged, startAutoRefresh, stopAutoRefresh]);
+  }, [setting, fetchCallData, fetchSkippedData, hasListChanged, startAutoRefresh, stopAutoRefresh, getBangkokDate]);
 
   // Function to split queue number into letter and number
   const splitQueueNumber = useCallback((queueNo: string | number | null | undefined) => {
