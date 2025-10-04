@@ -80,6 +80,7 @@ interface VisitInfo {
 export default function SinglePage({ params }: { params: Promise<{ id: string }> }) {
   const [setting, setSetting] = useState<Setting | null>(null);
   const [visitData, setVisitData] = useState<VisitInfo[]>([]);
+  const [visitDataRight, setVisitDataRight] = useState<VisitInfo[]>([]);
   const [activeData, setActiveData] = useState<VisitInfo[]>([]);
   const [callData, setCallData] = useState<VisitInfo | null>(null);
   const [showCallPopup, setShowCallPopup] = useState(false);
@@ -93,6 +94,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   const autoRefreshStartedRef = useRef(false);
   const lastSettingRef = useRef<Setting | null>(null);
   const lastVisitHashRef = useRef<string>('');
+  const lastVisitRightHashRef = useRef<string>('');
   const lastActiveHashRef = useRef<string>('');
   const lastSkippedHashRef = useRef<string>('');
   const lastCallHashRef = useRef<string>('');
@@ -327,7 +329,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       
       console.log('📅 กำลังดึงข้อมูล visit_date:', today, 'department:', departmentLoad);
       
-      const result = await fetchWithErrorHandling('/api/er', {
+      const result = await fetchWithErrorHandling('/api/duo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -367,7 +369,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
       
-      const result = await fetchWithErrorHandling('/api/er/active', {
+      const result = await fetchWithErrorHandling('/api/duo/active', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -402,7 +404,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
       
-      const result = await fetchWithErrorHandling('/api/er/call', {
+      const result = await fetchWithErrorHandling('/api/duo/call', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -449,7 +451,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       // Get current date in yyyy-mm-dd format
       const today = getBangkokDate();
       
-      const result = await fetchWithErrorHandling('/api/er/skipped', {
+      const result = await fetchWithErrorHandling('/api/duo/skipped', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -585,7 +587,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const updateCallStatus = useCallback(async (vn: string) => {
     try {
-      const result = await fetchWithErrorHandling('/api/er/call/update', {
+      const result = await fetchWithErrorHandling('/api/duo/call/update', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -825,7 +827,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     if (!setting || !setting.department_load) return;
 
     const today = getBangkokDate();
-    const sseUrl = `/api/er/realtime?department_load=${encodeURIComponent(setting.department_load)}&visit_date=${today}`;
+    const sseUrl = `/api/duo/realtime?department_room_load=${encodeURIComponent(setting.department_room_load)}&department_load=${encodeURIComponent(setting.department_load)}&visit_date=${today}`;
     
     console.log('🔗 Connecting to SSE:', sseUrl);
     
@@ -850,11 +852,16 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         if (data.type === 'update') {
           console.log('📡 SSE Update received');
           const visitList = Array.isArray(data.visitData) ? data.visitData : [];
+          const visitRightList = Array.isArray(data.visitDataRight) ? data.visitDataRight : [];
           const activeList = Array.isArray(data.activeData) ? data.activeData : [];
           const visitChanged = hasListChanged(visitList, lastVisitHashRef);
+          const visitRightChanged = hasListChanged(visitRightList, lastVisitRightHashRef);
           const activeChanged = hasListChanged(activeList, lastActiveHashRef);
           if (visitChanged) {
             setVisitData(visitList);
+          }
+          if (visitRightChanged) {
+            setVisitDataRight(visitRightList);
           }
           if (activeChanged) {
             setActiveData(activeList);
@@ -951,7 +958,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
 
   const currentSetting = setting || defaultSetting;
 
-  // ER stations are hardcoded as ER-A to ER-E
+  // Parse station_l to get table names
+  const tableNames = currentSetting.station_l ? currentSetting.station_l.split(',') : [];
 
   return (
     <div className={styles.container}>
@@ -969,6 +977,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       </header>
 
       {/* Main Content */}
+      <div className={styles.mainContainer}>
       <main className={styles.mainContent}>
         {/* Left Column - Interview Point */}
         <section className={styles.interviewSection}>
@@ -1120,63 +1129,373 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           </h2>
           
           <div className={styles.serviceCards}>
-            {/* ER-A to ER-E boxes (2 columns x 4 rows) */}
-            {['ER-A', 'ER-B', 'ER-C', 'ER-D', 'ER-E'].map((erName, index) => {
-              // Find active patient data for this ER station
-              const activePatient = activeData.find(visit => 
-                visit.station === erName || 
-                visit.station === `โต๊ะ${erName}` ||
-                visit.station === `${erName}`
-              );
-              
-              return (
-                <div key={index} className={styles.serviceCard}>
-                  <div className={styles.serviceInfo}>
-                    <span className={styles.serviceText}>
-                      {erName}
-                    </span>
-                    {activePatient && currentSetting.stem_surname !== 'name' && (
-                      <div className={styles.patientInfo}>
-                        <span 
-                          className={styles.patientName}
-                          style={{ 
-                            color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
-                              ? activePatient.urgent_color
-                              : undefined
-                          }}
-                        >
-                          {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
-                        </span>
-                      </div>
-                    )}
+            {tableNames.length > 0 ? (
+              tableNames.map((tableName, index) => {
+                // Find active patient data for this station
+                const activePatient = activeData.find(visit => 
+                  visit.station === tableName.trim() || 
+                  visit.station === `โต๊ะ${tableName.trim()}` ||
+                  visit.station === `${tableName.trim()}`
+                );
+                
+                return (
+                  <div key={index} className={styles.serviceCard}>
+                    <div className={styles.serviceInfo}>
+                      <span className={styles.serviceText}>
+                        {tableName.trim()}
+                      </span>
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
+                        <div className={styles.patientInfo}>
+                          <span 
+                            className={styles.patientName}
+                            style={{ 
+                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                                ? activePatient.urgent_color
+                                : undefined
+                            }}
+                          >
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div 
+                      className={styles.actionBox}
+                      style={{ 
+                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                          ? activePatient.urgent_color
+                          : '#0066AA'
+                      }}
+                    >
+                      {activePatient ? (
+                        <div className={styles.queueNumberSplit}>
+                          <span className={styles.queueLetter}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                          </span>
+                          <span className={styles.queueNumber}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div 
-                    className={styles.actionBox}
-                    style={{ 
-                      backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
-                        ? activePatient.urgent_color
-                        : '#0066AA'
-                    }}
-                  >
-                    {activePatient ? (
-                      <div className={styles.queueNumberSplit}>
-                        <span className={styles.queueLetter}>
-                          {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
-                        </span>
-                        <span className={styles.queueNumber}>
-                          {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className={styles.serviceText}>0</span>
-                    )}
+                );
+              })
+            ) : (
+              // Fallback to default tables if station_l is empty
+              Array.from({ length: currentSetting.amount_boxL || 3 }, (_, index) => {
+                const stationName = `${currentSetting.n_table || 'โต๊ะซักประวัติ'} ${index + 1}`;
+                const activePatient = activeData.find(visit => 
+                  visit.station === stationName
+                );
+                
+                return (
+                  <div key={index} className={styles.serviceCard}>
+                    <div className={styles.serviceInfo}>
+                      <span className={styles.serviceText}>
+                        {stationName}
+                      </span>
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
+                        <div className={styles.patientInfo}>
+                          <span 
+                            className={styles.patientName}
+                            style={{ 
+                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                                ? activePatient.urgent_color
+                                : undefined
+                            }}
+                          >
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div 
+                      className={styles.actionBox}
+                      style={{ 
+                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                          ? activePatient.urgent_color
+                          : '#0066AA'
+                      }}
+                    >
+                      {activePatient ? (
+                        <div className={styles.queueNumberSplit}>
+                          <span className={styles.queueLetter}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                          </span>
+                          <span className={styles.queueNumber}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                          </span>
+                        </div>
+                      ) : null} 
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       </main>
+
+      <main className={styles.mainContent}>
+        {/* Left Column - Interview Point */}
+        <section className={styles.interviewSection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              {currentSetting.n_table || 'จุดซักประวัติ'}
+            </h2>
+          </div>
+          
+          <table className={styles.interviewTable}>
+            <thead>
+              <tr>
+                <th className={styles.tableHeader}>
+                  <div className={styles.headerItem}>
+                    <Hash className={styles.headerIcon} size={20} />
+                    <span>หมายเลข</span>
+                  </div>
+                </th>
+                {currentSetting.stem_surname_table !== 'name' && (
+                  <th className={styles.tableHeader}>
+                    <div className={styles.headerItem}>
+                      <User className={styles.headerIcon} size={20} />
+                      <span>ชื่อ-นามสกุล</span>
+                    </div>
+                  </th>
+                )}
+                {currentSetting.urgent_level === 'true' && (
+                  <th className={styles.tableHeader}>
+                    <div className={styles.headerItem}>
+                      <span>ระดับความเร่งด่วน</span>
+                    </div>
+                  </th>
+                )}
+                {currentSetting.status_patient === 'true' && (
+                  <th className={styles.tableHeader}>
+                    <div className={styles.headerItem}>
+                      <span>สถานะ</span>
+                    </div>
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {visitDataRight.length > 0 ? (
+                visitDataRight.map((visit, index) => (
+                  <tr key={visit.id || index} className={styles.tableRow}>
+                    <td className={styles.tableCell}>
+                      <div className={styles.queueNumberContainer}>
+                        {currentSetting.urgent_color === 'true' && visit.urgent_color && (
+                          <div 
+                            className={styles.urgentColorBlock}
+                            style={{ backgroundColor: visit.urgent_color }}
+                          />
+                        )}
+                        <span 
+                          className={styles.queueNumberLeft}
+                          style={{ 
+                            color: currentSetting.urgent_color === 'true' && visit.urgent_color
+                              ? visit.urgent_color
+                              : '#0c266d' 
+                          }}
+                        >
+                          {visit.visit_q_no || ' - '}
+                        </span>
+                      </div>
+                    </td>
+                    {currentSetting.stem_surname_table !== 'name' && (
+                      <td className={styles.tableCell}>
+                        <span 
+                          className={styles.patientName}
+                          style={{ 
+                            color: currentSetting.urgent_color === 'true' && visit.urgent_color
+                              ? visit.urgent_color
+                              : '#0c266d' 
+                          }}
+                        >
+                          {(currentSetting.stem_name_table !== 'hide' || 
+                            (currentSetting.stem_surname_table === 'true' && currentSetting.stem_name_table === 'hide')) && 
+                            (visit.name || '-')
+                          }
+                          {(currentSetting.stem_name_table !== 'hide' || 
+                            (currentSetting.stem_surname_table === 'true' && currentSetting.stem_name_table === 'hide')) && 
+                            ' '
+                          }
+                          {(currentSetting.stem_surname_table === 'true' && 
+                            (currentSetting.stem_name_table === 'true' || currentSetting.stem_name_table === 'hide')) 
+                            ? (visit.surname || '-')
+                            : currentSetting.stem_surname_table === 'true' 
+                              ? maskSurname(visit.surname) 
+                              : (visit.surname || '-')
+                          }
+                        </span>
+                      </td>
+                    )}
+                    {currentSetting.urgent_level === 'true' && (
+                      <td className={styles.tableCell}>
+                        <div className={styles.urgentLevel}>
+                          {visit.urgent_level ? (
+                            <div 
+                              className={styles.urgentCircle}
+                              style={{ 
+                                backgroundColor: visit.urgent_color || '#0066AA'
+                              }}
+                            />
+                          ) : (
+                            <div 
+                              className={styles.urgentCircle}
+                              style={{ 
+                                backgroundColor: visit.urgent_color || '#0066AA'
+                              }}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    {currentSetting.status_patient === 'true' && (
+                      <td className={styles.tableCell}>
+                      <span 
+                        className={styles.patientName}
+                        style={{ 
+                          color: currentSetting.urgent_color === 'true' && visit.status_patient as string
+                            ? visit.status_patient as string
+                            : '#0c266d' 
+                        }}
+                      >
+                        {visit.status_patient || '-'}
+                      </span>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={currentSetting.urgent_level === 'true' ? 3 : 2} className={styles.noData}>
+                    {currentSetting.n_listtable || 'ไม่มีข้อมูล'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+
+
+
+        {/* Right Column - Currently Receiving Service */}
+        <section className={styles.serviceSection}>
+          <h2 className={styles.serviceTitle}>
+            กำลังรับบริการ
+          </h2>
+          
+          <div className={styles.serviceCards}>
+            {tableNames.length > 0 ? (
+              tableNames.map((tableName, index) => {
+                // Find active patient data for this station
+                const activePatient = activeData.find(visit => 
+                  visit.station === tableName.trim() || 
+                  visit.station === `โต๊ะ${tableName.trim()}` ||
+                  visit.station === `${tableName.trim()}`
+                );
+                
+                return (
+                  <div key={index} className={styles.serviceCard}>
+                    <div className={styles.serviceInfo}>
+                      <span className={styles.serviceText}>
+                        {tableName.trim()}
+                      </span>
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
+                        <div className={styles.patientInfo}>
+                          <span 
+                            className={styles.patientName}
+                            style={{ 
+                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                                ? activePatient.urgent_color
+                                : undefined
+                            }}
+                          >
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div 
+                      className={styles.actionBox}
+                      style={{ 
+                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                          ? activePatient.urgent_color
+                          : '#0066AA'
+                      }}
+                    >
+                      {activePatient ? (
+                        <div className={styles.queueNumberSplit}>
+                          <span className={styles.queueLetter}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                          </span>
+                          <span className={styles.queueNumber}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              // Fallback to default tables if station_l is empty
+              Array.from({ length: currentSetting.amount_boxL || 3 }, (_, index) => {
+                const stationName = `${currentSetting.n_table || 'โต๊ะซักประวัติ'} ${index + 1}`;
+                const activePatient = activeData.find(visit => 
+                  visit.station === stationName
+                );
+                
+                return (
+                  <div key={index} className={styles.serviceCard}>
+                    <div className={styles.serviceInfo}>
+                      <span className={styles.serviceText}>
+                        {stationName}
+                      </span>
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
+                        <div className={styles.patientInfo}>
+                          <span 
+                            className={styles.patientName}
+                            style={{ 
+                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                                ? activePatient.urgent_color
+                                : undefined
+                            }}
+                          >
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div 
+                      className={styles.actionBox}
+                      style={{ 
+                        backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                          ? activePatient.urgent_color
+                          : '#0066AA'
+                      }}
+                    >
+                      {activePatient ? (
+                        <div className={styles.queueNumberSplit}>
+                          <span className={styles.queueLetter}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                          </span>
+                          <span className={styles.queueNumber}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                          </span>
+                        </div>
+                      ) : null} 
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </main>
+      </div>
 
       {/* Call Popup */}
       {showCallPopup && callData && (
