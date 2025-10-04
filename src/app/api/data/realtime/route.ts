@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
             if (index > 0) activeQuery += ',';
             activeQuery += `@dept${index}`;
           });
-          activeQuery += ') AND mvi.visit_date = @visit_date AND mvi.status = @status';
+          activeQuery += ') AND mvi.visit_date = @visit_date AND mvi.status IN (@status1, @status2)';
 
           // Prepare separate requests to avoid concurrent usage of the same Request instance
           const visitRequest = connection.request();
@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
             activeRequest.input(`dept${index}`, sql.VarChar, id);
           });
           activeRequest.input('visit_date', sql.Date, visit_date);
-          activeRequest.input('status', sql.VarChar, 'กำลัง');
+          activeRequest.input('status1', sql.NVarChar, 'กำลัง');
+          activeRequest.input('status2', sql.NVarChar, 'กำลังรับบริการ');
 
           // Execute queries in parallel using separate requests
           const [visitResult, activeResult] = await Promise.all([

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       if (index > 0) query += ',';
       query += `@dept${index}`;
     });
-    query += ') AND mvi.visit_date = @visit_date AND mvi.status = @status ORDER BY mvi.check_in';
+    query += ') AND mvi.visit_date = @visit_date AND mvi.status IN (@status1, @status2) ORDER BY mvi.check_in';
 
     // Execute query
     const dbRequest = connection.request();
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     
     // Add visit_date and status parameters
     dbRequest.input('visit_date', sql.Date, visit_date);
-    dbRequest.input('status', sql.VarChar, 'กำลัง');
+    dbRequest.input('status1', sql.NVarChar, 'กำลัง');
+    dbRequest.input('status2', sql.NVarChar, 'กำลังรับบริการ');
 
     const result = await dbRequest.query(query);
 
