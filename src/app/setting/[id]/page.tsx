@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Settings, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Settings, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface PayloadData {
   type: string;
@@ -50,6 +50,11 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
   const [isFetching, setIsFetching] = useState(true);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  
+  // State สำหรับเก็บชื่อห้องแต่ละห้อง
+  const [leftRooms, setLeftRooms] = useState<string[]>(['', '']);
+  const [rightRooms, setRightRooms] = useState<string[]>(['', '']);
+  
   const [payload, setPayload] = useState<PayloadData>({
     type: 'ประเภทหน้าจอ',
     typeMonitor: '',
@@ -98,6 +103,28 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
         
         if (result.success && result.data) {
           const data = result.data;
+          
+          // แปลง station_left และ station_right จาก comma-separated string เป็น array
+          const stationLeftString = data.station_l || '';
+          const stationRightString = data.station_r || '';
+          
+          const leftRoomsArray = stationLeftString ? stationLeftString.split(',').map((s: string) => s.trim()) : [];
+          const rightRoomsArray = stationRightString ? stationRightString.split(',').map((s: string) => s.trim()) : [];
+          
+          const amountLeft = data.amount_boxL || 2;
+          const amountRight = data.amount_boxR || 2;
+          
+          // ถ้า array สั้นกว่า amount ให้เพิ่มช่องว่าง
+          while (leftRoomsArray.length < amountLeft) {
+            leftRoomsArray.push('');
+          }
+          while (rightRoomsArray.length < amountRight) {
+            rightRoomsArray.push('');
+          }
+          
+          setLeftRooms(leftRoomsArray);
+          setRightRooms(rightRoomsArray);
+          
           setPayload({
             type: data.type || 'ประเภทหน้าจอ',
             typeMonitor: resolvedParams.id,
@@ -107,8 +134,8 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
             head_right: data.n_room || '',
             urgent_setup: data.urgent_setup || 'ฉุกเฉิน',
             time_wait: data.time_wait || 300,
-            amount_left: data.amount_boxL || 2,
-            amount_right: data.amount_boxR || 2,
+            amount_left: amountLeft,
+            amount_right: amountRight,
             arr_l: data.table_arr === 'true',
             arr_r: data.table_arr2 === 'true',
             set_descrip: data.set_descrip === 'true',
@@ -147,6 +174,64 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
     fetchData();
   }, [resolvedParams.id]);
 
+  // ฟังก์ชันสำหรับจัดการเมื่อ amount เปลี่ยน
+  const handleAmountLeftChange = (newAmount: number) => {
+    const amount = Math.max(0, newAmount); // ป้องกันค่าติดลบ
+    setPayload(prev => ({ ...prev, amount_left: amount }));
+    
+    // ปรับขนาด array ของ leftRooms ตาม amount ใหม่
+    setLeftRooms(prevRooms => {
+      const newRooms = [...prevRooms];
+      if (amount > prevRooms.length) {
+        // เพิ่มช่องว่างถ้า amount มากกว่าเดิม
+        for (let i = prevRooms.length; i < amount; i++) {
+          newRooms.push('');
+        }
+      } else {
+        // ตัดส่วนเกินถ้า amount น้อยกว่าเดิม
+        return newRooms.slice(0, amount);
+      }
+      return newRooms;
+    });
+  };
+
+  const handleAmountRightChange = (newAmount: number) => {
+    const amount = Math.max(0, newAmount); // ป้องกันค่าติดลบ
+    setPayload(prev => ({ ...prev, amount_right: amount }));
+    
+    // ปรับขนาด array ของ rightRooms ตาม amount ใหม่
+    setRightRooms(prevRooms => {
+      const newRooms = [...prevRooms];
+      if (amount > prevRooms.length) {
+        // เพิ่มช่องว่างถ้า amount มากกว่าเดิม
+        for (let i = prevRooms.length; i < amount; i++) {
+          newRooms.push('');
+        }
+      } else {
+        // ตัดส่วนเกินถ้า amount น้อยกว่าเดิม
+        return newRooms.slice(0, amount);
+      }
+      return newRooms;
+    });
+  };
+
+  // ฟังก์ชันสำหรับอัปเดตชื่อห้องแต่ละห้อง
+  const handleLeftRoomChange = (index: number, value: string) => {
+    setLeftRooms(prevRooms => {
+      const newRooms = [...prevRooms];
+      newRooms[index] = value;
+      return newRooms;
+    });
+  };
+
+  const handleRightRoomChange = (index: number, value: string) => {
+    setRightRooms(prevRooms => {
+      const newRooms = [...prevRooms];
+      newRooms[index] = value;
+      return newRooms;
+    });
+  };
+
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,10 +244,20 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
     setIsLoading(true);
     
     try {
+      // รวมชื่อห้องเป็น comma-separated string
+      const stationLeft = leftRooms.join(',');
+      const stationRight = rightRooms.join(',');
+      
+      const submitPayload = {
+        ...payload,
+        station_left: stationLeft,
+        station_right: stationRight
+      };
+
       const response = await fetch('/api/setting/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(submitPayload),
       });
 
       const result = await response.json();
@@ -306,72 +401,114 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ซ้าย)</label>
-                  <input
-                    type="number"
-                    value={payload.amount_left}
-                    onChange={(e) => setPayload(prev => ({ ...prev, amount_left: parseInt(e.target.value) }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                  />
+                {/* ฝั่งซ้าย */}
+                <div className="space-y-4">
+                  <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
+                    <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
+                      <ArrowLeft className="w-5 h-5" />
+                      <span>ตาราง (ซ้าย)</span>
+                    </h4>
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ซ้าย)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={payload.amount_left}
+                        onChange={(e) => handleAmountLeftChange(parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                        placeholder="กรอกจำนวนห้อง"
+                      />
+                    </div>
+
+                    {payload.amount_left > 0 && (
+                      <div className="space-y-3 mt-4">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          ชื่อห้อง ({payload.amount_left} ห้อง)
+                        </label>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {leftRooms.map((room, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
+                              <input
+                                type="text"
+                                value={room}
+                                onChange={(e) => handleLeftRoomChange(index, e.target.value)}
+                                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
+                                placeholder={`ห้อง ${index + 1}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ซ้าย)</label>
+                      <input
+                        type="text"
+                        value={payload.query_left}
+                        onChange={(e) => setPayload(prev => ({ ...prev, query_left: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                        placeholder="Department ID"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
-                  <input
-                    type="number"
-                    value={payload.amount_right}
-                    onChange={(e) => setPayload(prev => ({ ...prev, amount_right: parseInt(e.target.value) }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                  />
-                </div>
+                {/* ฝั่งขวา */}
+                <div className="space-y-4">
+                  <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
+                    <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
+                      <ArrowRight className="w-5 h-5" />
+                      <span>ตาราง (ขวา)</span>
+                    </h4>
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={payload.amount_right}
+                        onChange={(e) => handleAmountRightChange(parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                        placeholder="กรอกจำนวนห้อง"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">ชื่อโต๊ะ (ซ้าย)</label>
-                  <textarea
-                    value={payload.station_left}
-                    onChange={(e) => setPayload(prev => ({ ...prev, station_left: e.target.value }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                    rows={3}
-                    placeholder="เช่น โต๊ะซักประวัติ 1,โต๊ะซักประวัติ 2"
-                  />
-                </div>
+                    {payload.amount_right > 0 && (
+                      <div className="space-y-3 mt-4">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          ชื่อห้อง ({payload.amount_right} ห้อง)
+                        </label>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {rightRooms.map((room, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
+                              <input
+                                type="text"
+                                value={room}
+                                onChange={(e) => handleRightRoomChange(index, e.target.value)}
+                                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
+                                placeholder={`ห้อง ${index + 1}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">ชื่อโต๊ะ (ขวา)</label>
-                  <textarea
-                    value={payload.station_right}
-                    onChange={(e) => setPayload(prev => ({ ...prev, station_right: e.target.value }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                    rows={3}
-                    placeholder="เช่น โต๊ะตรวจ 1,โต๊ะตรวจ 2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ซ้าย)</label>
-                  <input
-                    type="text"
-                    value={payload.query_left}
-                    onChange={(e) => setPayload(prev => ({ ...prev, query_left: e.target.value }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
-                  <input
-                    type="text"
-                    value={payload.query_right}
-                    onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                  />
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
+                      <input
+                        type="text"
+                        value={payload.query_right}
+                        onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                        placeholder="Department ID"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
