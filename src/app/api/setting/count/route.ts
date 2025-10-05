@@ -18,7 +18,7 @@ export async function GET() {
     const maxId = maxIdResult.recordset[0]?.maxId || 0;
 
     // แมปชื่อ column จากฐานข้อมูลให้ตรงกับที่ front-end ใช้
-    const mappedData = result.recordset.map((item: any) => ({
+    const mappedData = result.recordset.map((item: Record<string, unknown>) => ({
       ...item,
       type: item.type || 'single',
       n_department: item.department,
@@ -37,14 +37,15 @@ export async function GET() {
       data: mappedData
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting settings:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     return NextResponse.json(
       {
         success: false,
-        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message,
-        error: error.message,
+        message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + errorMessage,
+        error: errorMessage,
       },
       { status: 500 }
     );

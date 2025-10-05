@@ -9,7 +9,7 @@ import { playGoogleTTS, THAI_VOICES } from '../lib/google-tts';
  */
 export default function TTSTest() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState(THAI_VOICES.STANDARD_A);
+  const [selectedVoice, setSelectedVoice] = useState<keyof typeof THAI_VOICES>('STANDARD_A');
   const [testText, setTestText] = useState('ขอเชิญหมายเลข 1 2 3 ที่โต๊ะซักประวัติ 1 ค่ะ');
 
   const handlePlay = async () => {
@@ -20,7 +20,7 @@ export default function TTSTest() {
       await playGoogleTTS({
         text: testText,
         language: 'th-TH',
-        voice: selectedVoice,
+        voice: THAI_VOICES[selectedVoice],
         speed: 0.6,
         pitch: 1.0
       });

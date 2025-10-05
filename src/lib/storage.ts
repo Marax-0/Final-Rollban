@@ -19,14 +19,14 @@ export async function readSettings() {
     await ensureDataDir();
     const data = await fs.readFile(SETTINGS_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     // ถ้าไม่มีไฟล์ ให้คืนค่าเริ่มต้น
     return {};
   }
 }
 
 // เขียนข้อมูลทั้งหมด
-export async function writeSettings(data: any) {
+export async function writeSettings(data: Record<string, unknown>) {
   await ensureDataDir();
   await fs.writeFile(SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
@@ -38,7 +38,7 @@ export async function getSettingByMonitor(typeMonitor: string) {
 }
 
 // บันทึกการตั้งค่าของหน้าจอ
-export async function saveSettingByMonitor(typeMonitor: string, data: any) {
+export async function saveSettingByMonitor(typeMonitor: string, data: Record<string, unknown>) {
   const settings = await readSettings();
   settings[typeMonitor] = {
     ...data,

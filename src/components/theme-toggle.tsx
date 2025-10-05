@@ -44,3 +44,4 @@ export function ThemeToggle() {
       <span className="sr-only">สลับธีม</span>
     </Button>
   );
+}

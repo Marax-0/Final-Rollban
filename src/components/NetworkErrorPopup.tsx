@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React from 'react';
 import styles from './NetworkErrorPopup.module.css';
 
 interface NetworkErrorPopupProps {

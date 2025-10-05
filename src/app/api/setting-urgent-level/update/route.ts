@@ -25,11 +25,10 @@ export async function POST(request: NextRequest) {
     const checkResult = await checkRequest.query(checkQuery);
 
     let query;
-    let result;
 
     if (checkResult.recordset.length > 0) {
       // Update existing record
-      let updates = [];
+      const updates = [];
       
       if (color !== undefined) {
         updates.push('color = @color');
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
       dbRequest.input('color', sql.VarChar, color);
     }
 
-    result = await dbRequest.query(query);
+    const result = await dbRequest.query(query);
 
     // Get updated data to return
     const selectQuery = `

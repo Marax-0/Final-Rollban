@@ -75,7 +75,7 @@ export default function SettingPage() {
   // State สำหรับ Swap Modal
   const [swapCount, setSwapCount] = useState<number>(0);
   const [swapSelections, setSwapSelections] = useState<string[]>([]);
-  const [availableSettings, setAvailableSettings] = useState<any[]>([]);
+  const [availableSettings, setAvailableSettings] = useState<SettingData[]>([]);
   const [swapTimeWait, setSwapTimeWait] = useState<number>(2000); // default 20 วินาที (2000ms * 10 = 20000ms)
 
   // Fetch settings from database
@@ -86,7 +86,7 @@ export default function SettingPage() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        const formattedSettings: SettingData[] = data.data.map((item: any) => ({
+        const formattedSettings: SettingData[] = data.data.map((item: Record<string, unknown>) => ({
           id: item.id?.toString() || '',
           type: item.type || 'single',
           n_hospital: item.n_hospital || '',
@@ -904,7 +904,7 @@ export default function SettingPage() {
                               .filter(setting => setting.type !== 'swap') // กรองไม่ให้แสดงจอ type = swap
                               .map((setting) => (
                                 <option key={setting.id} value={setting.id}>
-                                  ID: {setting.id} - {setting.n_hospital} ({setting.department})
+                                  ID: {setting.id} - {setting.n_hospital} ({setting.n_department})
                                 </option>
                               ))}
                           </select>
