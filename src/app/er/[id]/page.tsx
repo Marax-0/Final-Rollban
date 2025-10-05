@@ -77,6 +77,12 @@ interface VisitInfo {
   [key: string]: string | number | boolean | null | undefined;
 }
 
+interface UrgentLevel {
+  ID: number;
+  Color: string;
+  Urgent_level: string;
+}
+
 export default function SinglePage({ params }: { params: Promise<{ id: string }> }) {
   const [setting, setSetting] = useState<Setting | null>(null);
   const [visitData, setVisitData] = useState<VisitInfo[]>([]);
@@ -84,6 +90,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   const [callData, setCallData] = useState<VisitInfo | null>(null);
   const [showCallPopup, setShowCallPopup] = useState(false);
   const [skippedData, setSkippedData] = useState<VisitInfo[]>([]);
+  const [urgentLevels, setUrgentLevels] = useState<UrgentLevel[]>([]);
+  const [urgentColors, setUrgentColors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [lastDataHash, setLastDataHash] = useState<string>('');
@@ -490,6 +498,30 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
     }
   }, [handleError, fetchWithErrorHandling, getBangkokDate, hasListChanged]);
 
+  const fetchUrgentLevels = useCallback(async () => {
+    try {
+      const result = await fetchWithErrorHandling('/api/urgent-level');
+      
+      if (result && result.success) {
+        console.log('Urgent levels loaded:', result.data);
+        setUrgentLevels(result.data || []);
+        
+        // สร้าง color map จาก urgent levels
+        const colorMap: {[key: string]: string} = {};
+        if (result.data && Array.isArray(result.data)) {
+          result.data.forEach((level: UrgentLevel) => {
+            colorMap[level.Urgent_level] = level.Color;
+          });
+        }
+        setUrgentColors(colorMap);
+      } else if (result && !result.success) {
+        console.error('Failed to fetch urgent levels:', result.error);
+      }
+    } catch (err) {
+      handleError(err, 'fetchUrgentLevels');
+    }
+  }, [handleError, fetchWithErrorHandling]);
+
   // ฟังก์ชันสำหรับ auto refresh ข้อมูล
   const startAutoRefresh = useCallback((departmentLoad: string) => {
     // ป้องกันการเรียกซ้ำ
@@ -817,7 +849,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
               fetchVisitData(result.data.department_load),
               fetchActiveData(result.data.department_load),
               fetchCallData(result.data.department_load),
-              fetchSkippedData(result.data.department_load)
+              fetchSkippedData(result.data.department_load),
+              fetchUrgentLevels()
             ]);
             
             // เริ่ม auto refresh
@@ -1154,20 +1187,24 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           </h2>
           
           <div className={styles.serviceCards}>
-            {/* ER-E to ER-A boxes (E at top, A at bottom) */}
-            {['ER-E', 'ER-D', 'ER-C', 'ER-B', 'ER-A'].map((erName, index) => {
-              // Find active patient data for this ER station
+            {/* Dynamic ER stations based on urgent levels */}
+            {urgentLevels.length > 0 ? urgentLevels.map((urgentLevel, index) => {
+              // Find active patient data for this urgent level station
+              const stationName = `ER-${urgentLevel.Urgent_level}`;
               const activePatient = activeData.find(visit => 
-                visit.station === erName || 
-                visit.station === `โต๊ะ${erName}` ||
-                visit.station === `${erName}`
+                visit.station === stationName || 
+                visit.station === urgentLevel.Urgent_level || 
+                visit.station === `โต๊ะ${stationName}` ||
+                visit.station === `โต๊ะ${urgentLevel.Urgent_level}` ||
+                visit.station === `${stationName}` ||
+                visit.station === `${urgentLevel.Urgent_level}`
               );
               
               return (
-                <div key={index} className={styles.serviceCard}>
+                <div key={urgentLevel.ID} className={styles.serviceCard}>
                   <div className={styles.serviceInfo}>
                     <span className={styles.serviceText}>
-                      {erName}
+                      {stationName}
                     </span>
                     {activePatient && currentSetting.stem_surname !== 'name' && (
                       <div className={styles.patientInfo}>
@@ -1184,14 +1221,20 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                       </div>
                     )}
                   </div>
-                   <div 
-                     className={`${styles.actionBox} ${styles[`er${erName.split('-')[1]}`]}`}
-                     style={{ 
-                       backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
-                         ? activePatient.urgent_color
-                         : undefined
-                     }}
-                   >
+                     <div 
+                       className={styles.actionBox}
+                       style={{ 
+                         background: currentSetting.urgent_color === 'true' && activePatient?.urgent_color && activePatient.urgent_color !== '-'
+                           ? `radial-gradient(circle, ${activePatient.urgent_color} 0%, ${activePatient.urgent_color}dd 100%)`
+                           : urgentColors[urgentLevel.Urgent_level] && urgentColors[urgentLevel.Urgent_level] !== '-'
+                             ? `radial-gradient(circle, ${urgentColors[urgentLevel.Urgent_level]} 0%, ${urgentColors[urgentLevel.Urgent_level]}dd 100%)`
+                             : urgentLevel.Color && urgentLevel.Color !== '-'
+                               ? `radial-gradient(circle, ${urgentLevel.Color} 0%, ${urgentLevel.Color}dd 100%)`
+                               : 'radial-gradient(circle, #ffffff 0%, #ffffffdd 100%)',
+                         color: '#ffffff',
+                         textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                       }}
+                     >
                     {activePatient ? (
                       <div className={styles.queueNumberSplit}>
                         <span className={styles.queueLetter}>
@@ -1207,7 +1250,65 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              // Fallback to hardcoded ER stations if urgent levels not loaded
+              ['ER-E', 'ER-D', 'ER-C', 'ER-B', 'ER-A'].map((erName, index) => {
+                const activePatient = activeData.find(visit => 
+                  visit.station === erName || 
+                  visit.station === `โต๊ะ${erName}` ||
+                  visit.station === `${erName}`
+                );
+                
+                return (
+                  <div key={index} className={styles.serviceCard}>
+                    <div className={styles.serviceInfo}>
+                      <span className={styles.serviceText}>
+                        {erName}
+                      </span>
+                      {activePatient && currentSetting.stem_surname !== 'name' && (
+                        <div className={styles.patientInfo}>
+                          <span 
+                            className={styles.patientName}
+                            style={{ 
+                              color: currentSetting.urgent_color === 'true' && activePatient.urgent_color
+                                ? activePatient.urgent_color
+                                : undefined
+                            }}
+                          >
+                            {activePatient.name || '-'} {currentSetting.stem_surname === 'true' ? maskSurname(activePatient.surname) : (activePatient.surname || '-')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                       <div 
+                         className={styles.actionBox}
+                         style={{ 
+                           background: currentSetting.urgent_color === 'true' && activePatient?.urgent_color && activePatient.urgent_color !== '-'
+                             ? `radial-gradient(circle, ${activePatient.urgent_color} 0%, ${activePatient.urgent_color}dd 100%)`
+                             : urgentColors[erName.split('-')[1]] && urgentColors[erName.split('-')[1]] !== '-'
+                               ? `radial-gradient(circle, ${urgentColors[erName.split('-')[1]]} 0%, ${urgentColors[erName.split('-')[1]]}dd 100%)`
+                               : 'radial-gradient(circle, #ffffff 0%, #ffffffdd 100%)',
+                           color: '#ffffff',
+                           textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                         }}
+                       >
+                      {activePatient ? (
+                        <div className={styles.queueNumberSplit}>
+                          <span className={styles.queueLetter}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).letter}
+                          </span>
+                          <span className={styles.queueNumber}>
+                            {splitQueueNumber(String(activePatient.visit_q_no || '')).number}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={styles.serviceText}>0</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
       </main>
