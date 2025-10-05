@@ -56,7 +56,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
   const [rightRooms, setRightRooms] = useState<string[]>(['', '']);
   
   const [payload, setPayload] = useState<PayloadData>({
-    type: 'ประเภทหน้าจอ',
+    type: 'single',
     typeMonitor: '',
     n_hospital: 'โรงพยาบาล',
     n_department: 'ตรวจโรคทั่วไป',
@@ -126,7 +126,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
           setRightRooms(rightRoomsArray);
           
           setPayload({
-            type: data.type || 'ประเภทหน้าจอ',
+            type: data.type || 'single',
             typeMonitor: resolvedParams.id,
             n_hospital: data.n_hospital || '',
             n_department: data.department || '',
@@ -339,6 +339,21 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">ประเภทหน้าจอ</label>
+                  <select
+                    value={payload.type}
+                    onChange={(e) => setPayload(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm bg-white"
+                    style={{ borderColor: '#e2e8f0' }}
+                  >
+                    <option value="single">Single</option>
+                    <option value="duo">Duo</option>
+                    <option value="swap">Swap</option>
+                    <option value="er">ER</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">ชื่อโรงพยาบาล</label>
                   <input
                     type="text"
@@ -371,16 +386,18 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">หัวตาราง (ขวา)</label>
-                  <input
-                    type="text"
-                    value={payload.head_right}
-                    onChange={(e) => setPayload(prev => ({ ...prev, head_right: e.target.value }))}
-                    className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
-                    style={{ borderColor: '#e2e8f0' }}
-                  />
-                </div>
+                {payload.type === 'duo' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">หัวตาราง (ขวา)</label>
+                    <input
+                      type="text"
+                      value={payload.head_right}
+                      onChange={(e) => setPayload(prev => ({ ...prev, head_right: e.target.value }))}
+                      className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
+                      style={{ borderColor: '#e2e8f0' }}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">เวลารอ (วินาที)</label>
@@ -400,17 +417,17 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
               <h2 className="text-xl font-bold" style={{ color: '#043566' }}>การตั้งค่าตาราง</h2>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className={`grid grid-cols-1 ${payload.type === 'duo' ? 'md:grid-cols-2' : ''} gap-6`}>
                 {/* ฝั่งซ้าย */}
                 <div className="space-y-4">
                   <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
                     <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
                       <ArrowLeft className="w-5 h-5" />
-                      <span>ตาราง (ซ้าย)</span>
+                      <span>ตาราง {payload.type === 'duo' ? '(ซ้าย)' : ''}</span>
                     </h4>
                     
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ซ้าย)</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง</label>
                       <input
                         type="number"
                         min="0"
@@ -444,7 +461,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                     )}
 
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ซ้าย)</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Department ID</label>
                       <input
                         type="text"
                         value={payload.query_left}
@@ -456,60 +473,62 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
 
-                {/* ฝั่งขวา */}
-                <div className="space-y-4">
-                  <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
-                    <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
-                      <ArrowRight className="w-5 h-5" />
-                      <span>ตาราง (ขวา)</span>
-                    </h4>
-                    
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={payload.amount_right}
-                        onChange={(e) => handleAmountRightChange(parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                        placeholder="กรอกจำนวนห้อง"
-                      />
-                    </div>
-
-                    {payload.amount_right > 0 && (
-                      <div className="space-y-3 mt-4">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          ชื่อห้อง ({payload.amount_right} ห้อง)
-                        </label>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {rightRooms.map((room, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                              <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
-                              <input
-                                type="text"
-                                value={room}
-                                onChange={(e) => handleRightRoomChange(index, e.target.value)}
-                                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
-                                placeholder={`ห้อง ${index + 1}`}
-                              />
-                            </div>
-                          ))}
-                        </div>
+                {/* ฝั่งขวา - แสดงเฉพาะเมื่อ type เป็น duo */}
+                {payload.type === 'duo' && (
+                  <div className="space-y-4">
+                    <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
+                      <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
+                        <ArrowRight className="w-5 h-5" />
+                        <span>ตาราง (ขวา)</span>
+                      </h4>
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={payload.amount_right}
+                          onChange={(e) => handleAmountRightChange(parseInt(e.target.value) || 0)}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                          placeholder="กรอกจำนวนห้อง"
+                        />
                       </div>
-                    )}
 
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
-                      <input
-                        type="text"
-                        value={payload.query_right}
-                        onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                        placeholder="Department ID"
-                      />
+                      {payload.amount_right > 0 && (
+                        <div className="space-y-3 mt-4">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">
+                            ชื่อห้อง ({payload.amount_right} ห้อง)
+                          </label>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {rightRooms.map((room, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
+                                <input
+                                  type="text"
+                                  value={room}
+                                  onChange={(e) => handleRightRoomChange(index, e.target.value)}
+                                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
+                                  placeholder={`ห้อง ${index + 1}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
+                        <input
+                          type="text"
+                          value={payload.query_right}
+                          onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                          placeholder="Department ID"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -749,7 +768,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
 
       {/* Confirmation Popup */}
       {showConfirmPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
             <div className="p-6">
               <div className="flex items-center space-x-4 mb-4">
@@ -798,7 +817,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
 
       {/* Success Popup */}
       {showSuccessPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
             <div className="p-6 text-center">
               <div className="flex justify-center mb-4">

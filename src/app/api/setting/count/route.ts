@@ -20,6 +20,7 @@ export async function GET() {
     // แมปชื่อ column จากฐานข้อมูลให้ตรงกับที่ front-end ใช้
     const mappedData = result.recordset.map((item: any) => ({
       ...item,
+      type: item.type || 'single',
       n_department: item.department,
       head_left: item.n_table,
       head_right: item.n_room,
