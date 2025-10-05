@@ -153,6 +153,9 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   // ใช้ ref เพื่อหลีกเลี่ยง circular dependency
   const playTTSRef = useRef<(data: VisitInfo) => void>(() => {});
   const updateCallStatusRef = useRef<(vn: string) => void>(() => {});
+  
+  // ใช้ ref เพื่อติดตามสถานะการเล่น TTS
+  const isPlayingTTSRef = useRef(false);
 
   // ฟังก์ชันสำหรับสร้าง hash ของข้อมูลเพื่อตรวจสอบการเปลี่ยนแปลง
   const createDataHash = useCallback((data: VisitInfo[]) => {
@@ -420,16 +423,24 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           name: result.data.name,
           surname: result.data.surname,
           station: result.data.station,
+          status_call: result.data.status_call, // เพิ่ม status_call ใน hash
         });
-        if (lastCallHashRef.current !== callHash) {
+        
+        // แสดง popup และเล่น TTS ทุกครั้งที่มี status_call = '1'
+        if (result.data.status_call === '1') {
+          console.log('📢 New call detected, showing popup and playing TTS');
+          setCallData(result.data);
+          setShowCallPopup(true);
+          
+          // Play TTS announcement
+          if (playTTSRef.current) {
+            playTTSRef.current(result.data);
+          }
+        } else if (lastCallHashRef.current !== callHash) {
+          // สำหรับ status_call อื่นๆ ใช้ hash check แบบเดิม
           lastCallHashRef.current = callHash;
           setCallData(result.data);
           setShowCallPopup(true);
-        }
-        
-        // Play TTS announcement
-        if (playTTSRef.current) {
-          playTTSRef.current(result.data);
         }
       } else if (result && !result.success) {
         console.error('Failed to fetch call data:', result.error);
@@ -608,7 +619,18 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
   }, [setting?.department_load, fetchCallData, handleError, fetchWithErrorHandling]);
 
   const playTTS = useCallback(async (data: VisitInfo) => {
+    // ป้องกันการซ้อนทับกันของเสียง
+    if (isPlayingTTSRef.current) {
+      console.log('🔇 TTS is already playing, skipping...');
+      return;
+    }
+
     try {
+      isPlayingTTSRef.current = true;
+      
+      // หยุดเสียงที่กำลังเล่นอยู่ (ถ้ามี)
+      speechSynthesis.cancel();
+      
       // สร้างข้อความสำหรับ TTS: "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] ที่ [สถานี]"
       const queueNumber = String(data.visit_q_no || '').split('').join(' ');
       const patientName = data.name || '';
@@ -630,6 +652,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
         text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname} ที่ ${station} ค่ะ`;
       }
       
+      console.log('🔊 Playing TTS:', text);
+      
       // ใช้ Google TTS แทน browser TTS
       await playGoogleTTS({
         text: text,
@@ -647,6 +671,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       // ปิด popup หลังจาก TTS พูดจบ
       setTimeout(() => {
         setShowCallPopup(false);
+        isPlayingTTSRef.current = false;
       }, 500); // รอ 0.5 วินาทีหลังจาก TTS จบ
       
     } catch (error) {
@@ -673,6 +698,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           // a_sound = true หรือ default: พูด "ขอเชิญหมายเลข [หมายเลข] [ชื่อ] [นามสกุล] ที่ [สถานี]"
           text = `ขอเชิญหมายเลข ${queueNumber} ${patientName} ${patientSurname} ที่ ${station} ค่ะ`;
         }
+        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'th-TH';
         utterance.rate = 0.8;
@@ -684,10 +710,18 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           }
           setTimeout(() => {
             setShowCallPopup(false);
+            isPlayingTTSRef.current = false;
           }, 500);
         };
         
+        utterance.onerror = () => {
+          console.error('Browser TTS failed');
+          isPlayingTTSRef.current = false;
+        };
+        
         speechSynthesis.speak(utterance);
+      } else {
+        isPlayingTTSRef.current = false;
       }
     }
   }, [setting, defaultSetting]);
@@ -1120,8 +1154,8 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           </h2>
           
           <div className={styles.serviceCards}>
-            {/* ER-A to ER-E boxes (2 columns x 4 rows) */}
-            {['ER-A', 'ER-B', 'ER-C', 'ER-D', 'ER-E'].map((erName, index) => {
+            {/* ER-E to ER-A boxes (E at top, A at bottom) */}
+            {['ER-E', 'ER-D', 'ER-C', 'ER-B', 'ER-A'].map((erName, index) => {
               // Find active patient data for this ER station
               const activePatient = activeData.find(visit => 
                 visit.station === erName || 
@@ -1150,14 +1184,14 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
                       </div>
                     )}
                   </div>
-                  <div 
-                    className={styles.actionBox}
-                    style={{ 
-                      backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
-                        ? activePatient.urgent_color
-                        : '#0066AA'
-                    }}
-                  >
+                   <div 
+                     className={`${styles.actionBox} ${styles[`er${erName.split('-')[1]}`]}`}
+                     style={{ 
+                       backgroundColor: currentSetting.urgent_color === 'true' && activePatient?.urgent_color
+                         ? activePatient.urgent_color
+                         : undefined
+                     }}
+                   >
                     {activePatient ? (
                       <div className={styles.queueNumberSplit}>
                         <span className={styles.queueLetter}>
@@ -1182,9 +1216,6 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
       {showCallPopup && callData && (
         <div className={styles.callPopup}>
           <div className={styles.callPopupContent}>
-            <div className={styles.callHeader}>
-              <h3>เรียกคิว</h3>
-            </div>
             <div className={styles.callInfo}>
               <div className={styles.callDataLeft}>
                 <div className={styles.callTableName}>

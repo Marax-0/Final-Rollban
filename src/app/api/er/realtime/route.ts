@@ -52,18 +52,17 @@ export async function GET(request: NextRequest) {
           visitQuery += ') AND mvi.visit_date = @visit_date ORDER BY mvi.check_in';
 
           // Build query for active data with JOIN to setting_urgent_level
-          let activeQuery = `
-            SELECT 
+          // For ER, we search by station names (ER-A, ER-B, etc.)
+          const activeQuery = `
+            SELECT TOP 50
               mvi.*,
               sul.color as urgent_color
             FROM monitor_visit_info mvi
             LEFT JOIN setting_urgent_level sul ON mvi.urgent_id = sul.ID
-            WHERE mvi.code_dept_id IN (`;
-          departmentIds.forEach((id, index) => {
-            if (index > 0) activeQuery += ',';
-            activeQuery += `@dept${index}`;
-          });
-          activeQuery += ') AND mvi.visit_date = @visit_date AND mvi.status IN (@status1, @status2)';
+            WHERE mvi.visit_date = @visit_date 
+            AND (mvi.station IN ('ER-A', 'ER-B', 'ER-C', 'ER-D', 'ER-E') 
+                 OR mvi.station IN ('โต๊ะER-A', 'โต๊ะER-B', 'โต๊ะER-C', 'โต๊ะER-D', 'โต๊ะER-E'))
+            AND mvi.status IN (@status1, @status2)`;
 
           // Prepare separate requests to avoid concurrent usage of the same Request instance
           const visitRequest = connection.request();
@@ -73,10 +72,7 @@ export async function GET(request: NextRequest) {
           visitRequest.input('visit_date', sql.Date, visit_date);
 
           const activeRequest = connection.request();
-          departmentIds.forEach((id, index) => {
-            activeRequest.input(`dept${index}`, sql.VarChar, id);
-          });
-          activeRequest.input('visit_date', sql.Date, visit_date);
+          activeRequest.input('visit_date', sql.Date, visit_date);  
           activeRequest.input('status1', sql.NVarChar, 'กำลัง');
           activeRequest.input('status2', sql.NVarChar, 'กำลังรับบริการ');
 
