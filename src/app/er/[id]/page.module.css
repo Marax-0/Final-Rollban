@@ -328,7 +328,6 @@
 }
 
 .serviceText {
-  color: #1e3a8a;
   font-weight: bold;
   font-size: 1.5rem;
 }
@@ -354,46 +353,12 @@
 .actionBox {
   width: 100px;
   height: 70px;
-  background: #034282;
-  background: radial-gradient(circle, rgba(3, 66, 130, 1) 0%, rgba(35, 73, 161, 1) 100%);
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   font-weight: bold;
-}
-
-/* ER Color Classes */
-.actionBox.erE {
-  background: #FF0000;
-  background: radial-gradient(circle, rgba(255, 0, 0, 1) 0%, rgba(200, 0, 0, 1) 100%);
-  color: #ffffff;
-}
-
-.actionBox.erD {
-  background: #FF69B4;
-  background: radial-gradient(circle, rgba(255, 105, 180, 1) 0%, rgba(200, 80, 140, 1) 100%);
-  color: #ffffff;
-}
-
-.actionBox.erC {
-  background: #FFFF00;
-  background: radial-gradient(circle, rgba(255, 255, 0, 1) 0%, rgba(200, 200, 0, 1) 100%);
-  color: #ffffff;
-}
-
-.actionBox.erB {
-  background: #00FF00;
-  background: radial-gradient(circle, rgba(0, 255, 0, 1) 0%, rgba(0, 200, 0, 1) 100%);
-  color: #ffffff;
-}
-
-.actionBox.erA {
-  background: #FFFFFF;
-  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(240, 240, 240, 1) 100%);
-  color: #000000;
-  border: 2px solid #ccc;
 }
 
 .queueNumberSplit {
