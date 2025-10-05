@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import sql from 'mssql';
+import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db-config';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get connection from pool
     const connection = await getConnection();

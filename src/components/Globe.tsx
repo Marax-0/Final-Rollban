@@ -10,7 +10,8 @@ export default function Globe() {
   const [showHint, setShowHint] = useState(true)
 
   useEffect(() => {
-    if (!mountRef.current) return
+    const currentMount = mountRef.current
+    if (!currentMount) return
 
     // Create scene, camera, and renderer
     const scene = new THREE.Scene()
@@ -18,7 +19,7 @@ export default function Globe() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(window.devicePixelRatio)
-    mountRef.current.appendChild(renderer.domElement)
+    currentMount.appendChild(renderer.domElement)
 
     // Create a starfield
     const starsGeometry = new THREE.BufferGeometry()
@@ -219,7 +220,6 @@ export default function Globe() {
     return () => {
       window.removeEventListener("resize", handleResize)
       cancelAnimationFrame(animationId)
-      const currentMount = mountRef.current
       if (currentMount && renderer.domElement) {
         currentMount.removeChild(renderer.domElement)
       }

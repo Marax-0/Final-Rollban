@@ -50,12 +50,14 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorCode = (error as { code?: string })?.code || 'UNKNOWN_ERROR';
     return NextResponse.json({
       success: false,
-      error: error.message,
-      code: error.code
+      error: errorMessage,
+      code: errorCode
     }, { status: 500 });
   }
 }
@@ -107,11 +109,12 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Update error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: errorMessage
     }, { status: 500 });
   }
 }

@@ -50,14 +50,15 @@ export async function DELETE(request: NextRequest) {
       id: id
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error:', error);
-    console.error('Error message:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error message:', errorMessage);
     
     return NextResponse.json(
       {
         success: false,
-        message: 'เกิดข้อผิดพลาดในการลบข้อมูล: ' + error.message,
+        message: 'เกิดข้อผิดพลาดในการลบข้อมูล: ' + errorMessage,
       },
       { status: 500 }
     );

@@ -163,14 +163,15 @@ export async function POST(request: NextRequest) {
         id: data.typeMonitor
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error:', error);
-    console.error('Error message:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error message:', errorMessage);
     
     return NextResponse.json(
       {
         success: false,
-        message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message,
+        message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + errorMessage,
       },
       { status: 500 }
     );

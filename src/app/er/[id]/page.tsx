@@ -1188,7 +1188,7 @@ export default function SinglePage({ params }: { params: Promise<{ id: string }>
           
           <div className={styles.serviceCards}>
             {/* Dynamic ER stations based on urgent levels */}
-            {urgentLevels.length > 0 ? urgentLevels.map((urgentLevel, index) => {
+            {urgentLevels.length > 0 ? urgentLevels.map((urgentLevel) => {
               // Find active patient data for this urgent level station
               const stationName = `ER-${urgentLevel.Urgent_level}`;
               const activePatient = activeData.find(visit => 
