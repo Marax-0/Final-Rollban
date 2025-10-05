@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
     let query = `
       SELECT 
         mvi.*,
+        mvi.time_call,
+        mvi.status_call,
         sul.color as urgent_color
       FROM monitor_visit_info mvi
       LEFT JOIN setting_urgent_level sul ON mvi.urgent_id = sul.ID
