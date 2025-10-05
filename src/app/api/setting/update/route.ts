@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       await connection
         .request()
         .input('id', data.typeMonitor)
+        .input('type', data.type || 'single')
         .input('n_hospital', data.n_hospital || '')
         .input('department', data.n_department || '')
         .input('n_table', data.head_left || '')
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         .input('department_room_load', data.query_right || '2')
         .input('listPage', data.listPage || '')
         .query(`UPDATE setting SET 
+          type = @type,
           n_hospital = @n_hospital,
           department = @department,
           n_table = @n_table,
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
       await connection
         .request()
         .input('id', data.typeMonitor)
+        .input('type', data.type || 'single')
         .input('n_hospital', data.n_hospital || '')
         .input('department', data.n_department || '')
         .input('n_table', data.head_left || '')
@@ -134,7 +137,7 @@ export async function POST(request: NextRequest) {
         .input('n_listtable', '')
         .input('n_listroom', '2')
         .query(`INSERT INTO setting (
-          id, n_hospital, department, n_table, n_room, urgent_setup,
+          id, type, n_hospital, department, n_table, n_room, urgent_setup,
           time_wait, amount_boxL, amount_boxR, table_arr, table_arr2, set_descrip,
           set_notice, stem_surname, stem_popup, stem_surname_table,
           urgent_color, status_patient, status_check, lock_position,
@@ -142,7 +145,7 @@ export async function POST(request: NextRequest) {
           time_col, station_l, station_r, department_load, department_room_load, listPage,
           n_listtable, n_listroom
         ) VALUES (
-          @id, @n_hospital, @department, @n_table, @n_room, @urgent_setup,
+          @id, @type, @n_hospital, @department, @n_table, @n_room, @urgent_setup,
           @time_wait, @amount_boxL, @amount_boxR, @table_arr, @table_arr2, @set_descrip,
           @set_notice, @stem_surname, @stem_popup, @stem_surname_table,
           @urgent_color, @status_patient, @status_check, @lock_position,

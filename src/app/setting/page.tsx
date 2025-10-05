@@ -6,6 +6,7 @@ import { Settings, Edit, Trash2, Plus, Monitor, Home, Save, ArrowLeft, ArrowRigh
 
 interface SettingData {
   id: string;
+  type: string;
   n_hospital: string;
   n_department: string;
   head_left: string;
@@ -78,6 +79,7 @@ export default function SettingPage() {
       if (data.success && data.data) {
         const formattedSettings: SettingData[] = data.data.map((item: any) => ({
           id: item.id?.toString() || '',
+          type: item.type || 'single',
           n_hospital: item.n_hospital || '',
           n_department: item.n_department || '',
           head_left: item.head_left || '',
@@ -105,7 +107,7 @@ export default function SettingPage() {
 
   // Payload state
   const [payload, setPayload] = useState<PayloadData>({
-    type: 'ประเภทหน้าจอ',
+    type: 'single',
     typeMonitor: '',
     n_hospital: 'โรงพยาบาล',
     n_department: 'ตรวจโรคทั่วไป',
@@ -160,12 +162,12 @@ export default function SettingPage() {
   // Reset form
   const resetForm = () => {
     setPayload({
-      type: 'ประเภทหน้าจอ',
+      type: 'single',
       typeMonitor: '',
-      n_hospital: 'โรงพยาบาล',
-      n_department: 'ตรวจโรคทั่วไป',
-      head_left: 'จุดซักประวัติ',
-      head_right: 'ห้องตรวจ',
+      n_hospital: '',
+      n_department: '',
+      head_left: '',
+      head_right: '',
       urgent_setup: 'ฉุกเฉิน',
       time_wait: 300,
       amount_left: 2,
@@ -205,7 +207,7 @@ export default function SettingPage() {
   const handleOpenModal = async () => {
     resetForm();
     await generateNextId();
-    setShowModal(true);
+    setShowModal(true); // เปิด popup
   };
 
   // ฟังก์ชันสำหรับจัดการเมื่อ amount เปลี่ยน
@@ -553,16 +555,22 @@ export default function SettingPage() {
                       <div className="text-sm text-slate-600">{setting.head_left}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600">{setting.head_right}</div>
+                      {setting.type === 'duo' ? (
+                        <div className="text-sm text-slate-600">{setting.head_right}</div>
+                      ) : (
+                        <div className="text-sm text-slate-400">-</div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2 text-sm">
                         <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
                           L: {setting.amount_left}
                         </span>
-                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
-                          R: {setting.amount_right}
-                        </span>
+                        {setting.type === 'duo' && (
+                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
+                            R: {setting.amount_right}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -570,9 +578,11 @@ export default function SettingPage() {
                         <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
                           L: {setting.query_left}
                         </span>
-                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
-                          R: {setting.query_right}
-                        </span>
+                        {setting.type === 'duo' && (
+                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
+                            R: {setting.query_right}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -679,6 +689,19 @@ export default function SettingPage() {
                     </div>
 
                     <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">ประเภทหน้าจอ</label>
+                      <select
+                        value={payload.type}
+                        onChange={(e) => setPayload(prev => ({ ...prev, type: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all bg-white"
+                      >
+                        <option value="single">Single</option>
+                        <option value="duo">Duo</option>
+                        <option value="er">ER</option>
+                      </select>
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">ชื่อโรงพยาบาล</label>
                       <input
                         type="text"
@@ -708,15 +731,17 @@ export default function SettingPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">หัวตาราง (ขวา)</label>
-                      <input
-                        type="text"
-                        value={payload.head_right}
-                        onChange={(e) => setPayload(prev => ({ ...prev, head_right: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                      />
-                    </div>
+                    {payload.type === 'duo' && (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">หัวตาราง (ขวา)</label>
+                        <input
+                          type="text"
+                          value={payload.head_right}
+                          onChange={(e) => setPayload(prev => ({ ...prev, head_right: e.target.value }))}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                        />
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">เวลารอ (วินาที)</label>
@@ -736,17 +761,17 @@ export default function SettingPage() {
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>การตั้งค่าตาราง</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className={`grid grid-cols-1 ${payload.type === 'duo' ? 'md:grid-cols-2' : ''} gap-6`}>
                     {/* ฝั่งซ้าย */}
                     <div className="space-y-4">
                       <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
                         <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
                           <ArrowLeft className="w-5 h-5" />
-                          <span>ตาราง (ซ้าย)</span>
+                          <span>ตาราง {payload.type === 'duo' ? '(ซ้าย)' : ''}</span>
                         </h4>
                         
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ซ้าย)</label>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง</label>
                           <input
                             type="number"
                             min="0"
@@ -780,7 +805,7 @@ export default function SettingPage() {
                         )}
 
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ซ้าย)</label>
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Department ID</label>
                           <input
                             type="text"
                             value={payload.query_left}
@@ -792,60 +817,62 @@ export default function SettingPage() {
                       </div>
                     </div>
 
-                    {/* ฝั่งขวา */}
-                    <div className="space-y-4">
-                      <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
-                        <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
-                          <ArrowRight className="w-5 h-5" />
-                          <span>ตาราง (ขวา)</span>
-                        </h4>
-                        
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={payload.amount_right}
-                            onChange={(e) => handleAmountRightChange(parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                            placeholder="กรอกจำนวนห้อง"
-                          />
-                        </div>
-
-                        {payload.amount_right > 0 && (
-                          <div className="space-y-3 mt-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                              ชื่อห้อง ({payload.amount_right} ห้อง)
-                            </label>
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                              {rightRooms.map((room, index) => (
-                                <div key={index} className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
-                                  <input
-                                    type="text"
-                                    value={room}
-                                    onChange={(e) => handleRightRoomChange(index, e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
-                                    placeholder={`ห้อง ${index + 1}`}
-                                  />
-                                </div>
-                              ))}
-                            </div>
+                    {/* ฝั่งขวา - แสดงเฉพาะเมื่อ type เป็น duo */}
+                    {payload.type === 'duo' && (
+                      <div className="space-y-4">
+                        <div className="p-4 border-2 rounded-xl" style={{ borderColor: '#e2e8f0', background: 'rgba(4, 53, 102, 0.02)' }}>
+                          <h4 className="font-semibold mb-4 flex items-center space-x-2" style={{ color: '#043566' }}>
+                            <ArrowRight className="w-5 h-5" />
+                            <span>ตาราง (ขวา)</span>
+                          </h4>
+                          
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={payload.amount_right}
+                              onChange={(e) => handleAmountRightChange(parseInt(e.target.value) || 0)}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                              placeholder="กรอกจำนวนห้อง"
+                            />
                           </div>
-                        )}
 
-                        <div className="mt-4">
-                          <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
-                          <input
-                            type="text"
-                            value={payload.query_right}
-                            onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                            placeholder="Department ID"
-                          />
+                          {payload.amount_right > 0 && (
+                            <div className="space-y-3 mt-4">
+                              <label className="block text-sm font-medium text-slate-700 mb-2">
+                                ชื่อห้อง ({payload.amount_right} ห้อง)
+                              </label>
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {rightRooms.map((room, index) => (
+                                  <div key={index} className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
+                                    <input
+                                      type="text"
+                                      value={room}
+                                      onChange={(e) => handleRightRoomChange(index, e.target.value)}
+                                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-sm"
+                                      placeholder={`ห้อง ${index + 1}`}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Department ID (ขวา)</label>
+                            <input
+                              type="text"
+                              value={payload.query_right}
+                              onChange={(e) => setPayload(prev => ({ ...prev, query_right: e.target.value }))}
+                              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                              placeholder="Department ID"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
