@@ -59,15 +59,21 @@ export default function SettingPage() {
   const [settings, setSettings] = useState<SettingData[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
+  const [showModalSwap, setShowModalSwap] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ action: '', id: '' });
-  
+
   // State สำหรับเก็บชื่อห้องแต่ละห้อง
   const [leftRooms, setLeftRooms] = useState<string[]>(['', '']);
   const [rightRooms, setRightRooms] = useState<string[]>(['', '']);
+
+  // State สำหรับ Swap Modal
+  const [swapCount, setSwapCount] = useState<number>(0);
+  const [swapSelections, setSwapSelections] = useState<string[]>([]);
+  const [availableSettings, setAvailableSettings] = useState<any[]>([]);
 
   // Fetch settings from database
   const fetchSettings = async () => {
@@ -75,7 +81,7 @@ export default function SettingPage() {
       setIsLoadingData(true);
       const response = await fetch('/api/setting/count');
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         const formattedSettings: SettingData[] = data.data.map((item: any) => ({
           id: item.id?.toString() || '',
@@ -103,7 +109,57 @@ export default function SettingPage() {
 
   useEffect(() => {
     fetchSettings();
+    fetchAvailableSettings();
   }, []);
+
+  // Fetch available settings for Swap Modal
+  const fetchAvailableSettings = async () => {
+    try {
+      const response = await fetch('/api/id-setting');
+      const data = await response.json();
+      if (data.success) {
+        setAvailableSettings(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching available settings:', error);
+    }
+  };
+
+  // Handle swap count change
+  const handleSwapCountChange = (value: string) => {
+    const count = parseInt(value) || 0;
+    const validCount = Math.max(0, Math.min(10, count)); // อนุญาตให้เป็น 0 ได้ชั่วคราว
+    setSwapCount(validCount);
+    
+    // ปรับขนาด array ของ swapSelections เฉพาะเมื่อ count > 0
+    if (validCount > 0) {
+      setSwapSelections(prevSelections => {
+        const newSelections = [...prevSelections];
+        if (validCount > prevSelections.length) {
+          // เพิ่มช่องว่างถ้า count มากกว่าเดิม
+          for (let i = prevSelections.length; i < validCount; i++) {
+            newSelections.push('');
+          }
+        } else {
+          // ตัดส่วนเกินถ้า count น้อยกว่าเดิม
+          return newSelections.slice(0, validCount);
+        }
+        return newSelections;
+      });
+    } else {
+      // ถ้า count เป็น 0 ให้เคลียร์ selections
+      setSwapSelections([]);
+    }
+  };
+
+  // Handle swap selection change
+  const handleSwapSelectionChange = (index: number, value: string) => {
+    setSwapSelections(prevSelections => {
+      const newSelections = [...prevSelections];
+      newSelections[index] = value;
+      return newSelections;
+    });
+  };
 
   // Payload state
   const [payload, setPayload] = useState<PayloadData>({
@@ -169,7 +225,7 @@ export default function SettingPage() {
       head_left: '',
       head_right: '',
       urgent_setup: 'ฉุกเฉิน',
-      time_wait: 300,
+      time_wait: 0,
       amount_left: 2,
       amount_right: 2,
       arr_l: false,
@@ -209,12 +265,18 @@ export default function SettingPage() {
     await generateNextId();
     setShowModal(true); // เปิด popup
   };
+  const handleOpenModalSwap = async () => {
+    // Reset swap modal state
+    setSwapCount(0);
+    setSwapSelections([]);
+    setShowModalSwap(true);
+  };
 
   // ฟังก์ชันสำหรับจัดการเมื่อ amount เปลี่ยน
   const handleAmountLeftChange = (newAmount: number) => {
     const amount = Math.max(0, newAmount); // ป้องกันค่าติดลบ
     setPayload(prev => ({ ...prev, amount_left: amount }));
-    
+
     // ปรับขนาด array ของ leftRooms ตาม amount ใหม่
     setLeftRooms(prevRooms => {
       const newRooms = [...prevRooms];
@@ -234,7 +296,7 @@ export default function SettingPage() {
   const handleAmountRightChange = (newAmount: number) => {
     const amount = Math.max(0, newAmount); // ป้องกันค่าติดลบ
     setPayload(prev => ({ ...prev, amount_right: amount }));
-    
+
     // ปรับขนาด array ของ rightRooms ตาม amount ใหม่
     setRightRooms(prevRooms => {
       const newRooms = [...prevRooms];
@@ -275,7 +337,7 @@ export default function SettingPage() {
       // รวมชื่อห้องเป็น comma-separated string
       const stationLeft = leftRooms.join(',');
       const stationRight = rightRooms.join(',');
-      
+
       const submitPayload = {
         ...payload,
         station_left: stationLeft,
@@ -289,19 +351,19 @@ export default function SettingPage() {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Refresh data
         await fetchSettings();
         setShowModal(false);
-        
+
         // แสดง success popup
         setSuccessMessage({
           action: result.action === 'update' ? 'อัปเดต' : 'เพิ่ม',
           id: result.id
         });
         setShowSuccessPopup(true);
-        
+
         // ซ่อน popup อัตโนมัติหลัง 3 วินาที
         setTimeout(() => {
           setShowSuccessPopup(false);
@@ -329,18 +391,18 @@ export default function SettingPage() {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Refresh data
         await fetchSettings();
-        
+
         // แสดง success popup
         setSuccessMessage({
           action: 'ลบ',
           id: result.id
         });
         setShowSuccessPopup(true);
-        
+
         // ซ่อน popup อัตโนมัติหลัง 3 วินาที
         setTimeout(() => {
           setShowSuccessPopup(false);
@@ -377,11 +439,11 @@ export default function SettingPage() {
             <div className="flex items-center space-x-4">
               <div className="p-3 rounded-2xl shadow-md" style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}>
                 <Settings className="w-8 h-8 text-white" />
-        </div>
+              </div>
               <div>
                 <h1 className="text-3xl font-bold" style={{ color: '#043566' }}>การตั้งค่าระบบ</h1>
                 <p className="text-sm text-slate-600 mt-1">จัดการการตั้งค่าหน้าจอแสดงผล</p>
-        </div>
+              </div>
             </div>
             <Link
               href="/"
@@ -395,16 +457,16 @@ export default function SettingPage() {
         </div>
       </header>
 
-        {/* Main Content */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow p-6 border hover:shadow-md transition-all duration-300" style={{ borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
-                <div>
+              <div>
                 <p className="text-sm text-slate-600 font-medium">จำนวนหน้าจอ</p>
                 <p className="text-3xl font-bold mt-2" style={{ color: '#043566' }}>{settings.length}</p>
-                </div>
+              </div>
               <div className="p-3 rounded-xl" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
                 <Monitor className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
@@ -423,7 +485,7 @@ export default function SettingPage() {
                 <Settings className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
             </div>
-              </div>
+          </div>
 
           <div className="bg-white rounded-2xl shadow p-6 border hover:shadow-md transition-all duration-300" style={{ borderColor: '#e2e8f0' }}>
             <div className="flex items-center justify-between">
@@ -435,23 +497,34 @@ export default function SettingPage() {
                 <Monitor className="w-8 h-8" style={{ color: '#043566' }} />
               </div>
             </div>
-              </div>
-            </div>
+          </div>
+        </div>
 
         {/* Table Card */}
         <div className="bg-white rounded-2xl shadow overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
           {/* Table Header */}
           <div className="px-6 py-5 flex items-center justify-between border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
             <h2 className="text-xl font-bold" style={{ color: '#043566' }}>รายการหน้าจอแสดงผล</h2>
-            <button 
-              onClick={handleOpenModal}
-              className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow hover:shadow-md"
-              style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
-            >
-              <Plus className="w-5 h-5" />
-              <span>เพิ่มหน้าจอ</span>
-            </button>
-              </div>
+            <div className='flex gap-4'>
+              <button
+                onClick={handleOpenModalSwap}
+                className="flex items-center space-x-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow hover:shadow-md"
+                // style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
+              >
+                <Plus className="w-5 h-5" />
+                <span>เพิ่มหน้าจอสลับ</span>
+              </button>
+              <button
+                onClick={handleOpenModal}
+                className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow hover:shadow-md"
+                style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
+              >
+                <Plus className="w-5 h-5" />
+                <span>เพิ่มหน้าจอ</span>
+              </button>
+            </div>
+
+          </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -484,38 +557,38 @@ export default function SettingPage() {
                   </th>
                 </tr>
               </thead>
-               <tbody className="divide-y" style={{ borderColor: '#e2e8f0' }}>
-                 {isLoadingData ? (
-                   <tr>
-                     <td colSpan={8} className="px-6 py-16 text-center">
-                       <div className="flex flex-col items-center gap-4">
-                         <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#043566', borderTopColor: 'transparent' }}></div>
-                         <p className="text-slate-600 font-medium">กำลังโหลดข้อมูล...</p>
-                       </div>
-                     </td>
-                   </tr>
-                 ) : settings.length === 0 ? (
-                   <tr>
-                     <td colSpan={8} className="px-6 py-16 text-center">
-                       <div className="flex flex-col items-center gap-4">
-                         <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
-                           <Monitor className="w-10 h-10" style={{ color: '#043566' }} />
-                         </div>
-                         <div>
-                           <p className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีข้อมูลหน้าจอ</p>
-                           <p className="text-sm text-slate-500 mb-4">เริ่มต้นสร้างหน้าจอแสดงผลแรกของคุณ</p>
-                           <button
-                             onClick={handleOpenModal}
-                             className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-md"
-                             style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
-                           >
-                             + เพิ่มหน้าจอแรก
-                           </button>
-                         </div>
-                       </div>
-                     </td>
-                   </tr>
-                 ) : settings.map((setting) => (
+              <tbody className="divide-y" style={{ borderColor: '#e2e8f0' }}>
+                {isLoadingData ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#043566', borderTopColor: 'transparent' }}></div>
+                        <p className="text-slate-600 font-medium">กำลังโหลดข้อมูล...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : settings.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(4, 53, 102, 0.1)' }}>
+                          <Monitor className="w-10 h-10" style={{ color: '#043566' }} />
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีข้อมูลหน้าจอ</p>
+                          <p className="text-sm text-slate-500 mb-4">เริ่มต้นสร้างหน้าจอแสดงผลแรกของคุณ</p>
+                          <button
+                            onClick={handleOpenModal}
+                            className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-md"
+                            style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
+                          >
+                            + เพิ่มหน้าจอแรก
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : settings.map((setting) => (
                   <tr
                     key={setting.id}
                     className="transition-colors duration-150 cursor-pointer"
@@ -615,7 +688,7 @@ export default function SettingPage() {
                 ))}
               </tbody>
             </table>
-            </div>
+          </div>
 
           {/* Table Footer */}
           <div className="px-6 py-4 border-t" style={{ background: 'rgba(4, 53, 102, 0.01)', borderColor: '#e2e8f0' }}>
@@ -632,18 +705,106 @@ export default function SettingPage() {
                 </button>
               </div>
             </div>
-              </div>
-            </div>
+          </div>
+        </div>
       </main>
 
       {/* Modal */}
+      {showModalSwap && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
+            {/* Modal Header */}
+            <div className="px-6 py-5 flex items-center justify-between border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
+              <h2 className="text-xl font-bold" style={{ color: '#043566' }}>ตั้งค่า Swap</h2>
+              <button
+                onClick={() => setShowModalSwap(false)}
+                className="text-slate-400 hover:text-slate-700 text-2xl transition-colors"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <div className="space-y-6">
+                {/* จำนวน Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    จำนวนหน้าจอที่ต้องการ Swap
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={swapCount || ''}
+                    onChange={(e) => handleSwapCountChange(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                    placeholder="กรอกจำนวน (1-10)"
+                  />
+                </div>
+
+                {/* Dropdowns */}
+                {swapCount > 0 && (
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      เลือกหน้าจอ ({swapCount} หน้าจอ)
+                    </label>
+                    <div className="space-y-3">
+                      {swapSelections.map((selection, index) => (
+                        <div key={index} className="flex items-center space-x-3">
+                          <span className="text-sm font-medium text-slate-600 w-8">#{index + 1}</span>
+                          <select
+                            value={selection}
+                            onChange={(e) => handleSwapSelectionChange(index, e.target.value)}
+                            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all bg-white"
+                          >
+                            <option value="">-- เลือกหน้าจอ --</option>
+                            {availableSettings.map((setting) => (
+                              <option key={setting.id} value={setting.id}>
+                                ID: {setting.id} - {setting.n_hospital} ({setting.department})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t flex items-center justify-between" style={{ background: 'rgba(4, 53, 102, 0.01)', borderColor: '#e2e8f0' }}>
+              <button
+                onClick={() => setShowModalSwap(false)}
+                className="px-5 py-2.5 text-slate-600 bg-white border rounded-xl hover:bg-slate-50 shadow-sm hover:shadow transition-all duration-200"
+                style={{ borderColor: '#e2e8f0' }}
+              >
+                ยกเลิก
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('Swap Selections:', swapSelections);
+                  setShowModalSwap(false);
+                }}
+                className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 shadow hover:shadow-md transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
+              >
+                <Save className="w-4 h-4" />
+                <span>บันทึก</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
             {/* Modal Header */}
             <div className="px-6 py-5 flex items-center justify-between border-b" style={{ background: 'rgba(4, 53, 102, 0.02)', borderColor: '#e2e8f0' }}>
               <h2 className="text-xl font-bold" style={{ color: '#043566' }}>เพิ่มหน้าจอใหม่</h2>
-              <button 
+              <button
                 onClick={() => setShowModal(false)}
                 className="text-slate-400 hover:text-slate-700 text-2xl transition-colors"
               >
@@ -675,7 +836,7 @@ export default function SettingPage() {
               {currentStep === 1 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>ข้อมูลพื้นฐาน</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">ID หน้าจอ</label>
@@ -697,6 +858,7 @@ export default function SettingPage() {
                       >
                         <option value="single">Single</option>
                         <option value="duo">Duo</option>
+                        <option value="swap">Swap</option>
                         <option value="er">ER</option>
                       </select>
                     </div>
@@ -760,7 +922,7 @@ export default function SettingPage() {
               {currentStep === 2 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>การตั้งค่าตาราง</h3>
-                  
+
                   <div className={`grid grid-cols-1 ${payload.type === 'duo' ? 'md:grid-cols-2' : ''} gap-6`}>
                     {/* ฝั่งซ้าย */}
                     <div className="space-y-4">
@@ -769,7 +931,7 @@ export default function SettingPage() {
                           <ArrowLeft className="w-5 h-5" />
                           <span>ตาราง {payload.type === 'duo' ? '(ซ้าย)' : ''}</span>
                         </h4>
-                        
+
                         <div className="mb-4">
                           <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง</label>
                           <input
@@ -825,7 +987,7 @@ export default function SettingPage() {
                             <ArrowRight className="w-5 h-5" />
                             <span>ตาราง (ขวา)</span>
                           </h4>
-                          
+
                           <div className="mb-4">
                             <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนห้อง (ขวา)</label>
                             <input
@@ -881,12 +1043,12 @@ export default function SettingPage() {
               {currentStep === 3 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4" style={{ color: '#043566' }}>การตั้งค่าการแสดงผล</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Checkboxes */}
                     <div className="space-y-4">
                       <h4 className="font-medium text-blue-800">การแสดงผล</h4>
-                      
+
                       {[
                         { key: 'urgent_color', label: 'สีแสดงความเร่งด่วน' },
                         { key: 'status_patient', label: 'สถานะผู้ป่วย' },
@@ -911,7 +1073,7 @@ export default function SettingPage() {
 
                     <div className="space-y-4">
                       <h4 className="font-medium text-blue-800">เสียง</h4>
-                      
+
                       {[
                         { key: 'a_sound', label: 'คิว ชื่อ นามสกุล' },
                         { key: 'b_sound', label: 'คิว ชื่อ' },
@@ -940,14 +1102,14 @@ export default function SettingPage() {
 
                     <div className="space-y-4">
                       <h4 className="font-medium text-blue-800">การแสดงข้อมูลเพิ่มเติม</h4>
-                      
+
                       <label className="flex items-center space-x-3">
                         <input
                           type="checkbox"
                           checked={payload.set_descrip}
-                          onChange={(e) => setPayload(prev => ({ 
-                            ...prev, 
-                            set_descrip: e.target.checked 
+                          onChange={(e) => setPayload(prev => ({
+                            ...prev,
+                            set_descrip: e.target.checked
                           }))}
                           className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                         />
@@ -958,9 +1120,9 @@ export default function SettingPage() {
                         <input
                           type="checkbox"
                           checked={payload.set_notice}
-                          onChange={(e) => setPayload(prev => ({ 
-                            ...prev, 
-                            set_notice: e.target.checked 
+                          onChange={(e) => setPayload(prev => ({
+                            ...prev,
+                            set_notice: e.target.checked
                           }))}
                           className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                         />
@@ -975,14 +1137,14 @@ export default function SettingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในห้อง</h5>
-                        
+
                         <label className="flex items-center space-x-3">
                           <input
                             type="checkbox"
                             checked={payload.stem_name === 'hide'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_name: e.target.checked ? 'hide' : 'name' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_name: e.target.checked ? 'hide' : 'name'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -993,9 +1155,9 @@ export default function SettingPage() {
                           <input
                             type="checkbox"
                             checked={payload.stem_surname === 'true'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_surname: e.target.checked ? 'true' : 'name' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_surname: e.target.checked ? 'true' : 'name'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -1005,14 +1167,14 @@ export default function SettingPage() {
 
                       <div className="space-y-4">
                         <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในตาราง</h5>
-                        
+
                         <label className="flex items-center space-x-3">
                           <input
                             type="checkbox"
                             checked={payload.stem_name_table === 'hide'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_name_table: e.target.checked ? 'hide' : 'name' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_name_table: e.target.checked ? 'hide' : 'name'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -1023,9 +1185,9 @@ export default function SettingPage() {
                           <input
                             type="checkbox"
                             checked={payload.stem_surname_table === 'true'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_surname_table: e.target.checked ? 'true' : 'name' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_surname_table: e.target.checked ? 'true' : 'name'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -1035,14 +1197,14 @@ export default function SettingPage() {
 
                       <div className="space-y-4">
                         <h5 className="font-medium text-blue-700">การซ่อนข้อมูลในป๊อปอัพ</h5>
-                        
+
                         <label className="flex items-center space-x-3">
                           <input
                             type="checkbox"
                             checked={payload.stem_name_popup === 'true'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_name_popup: e.target.checked ? 'true' : 'false' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_name_popup: e.target.checked ? 'true' : 'false'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -1053,9 +1215,9 @@ export default function SettingPage() {
                           <input
                             type="checkbox"
                             checked={payload.stem_surname_popup === 'true'}
-                            onChange={(e) => setPayload(prev => ({ 
-                              ...prev, 
-                              stem_surname_popup: e.target.checked ? 'true' : 'false' 
+                            onChange={(e) => setPayload(prev => ({
+                              ...prev,
+                              stem_surname_popup: e.target.checked ? 'true' : 'false'
                             }))}
                             className="w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
                           />
@@ -1088,7 +1250,7 @@ export default function SettingPage() {
                 >
                   ยกเลิก
                 </button>
-                
+
                 {currentStep < 3 ? (
                   <button
                     onClick={nextStep}
@@ -1122,14 +1284,12 @@ export default function SettingPage() {
       {/* Success Popup */}
       {showSuccessPopup && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-bounce-in pointer-events-auto border-l-4 ${
-            successMessage.action === 'ลบ' ? 'border-red-500' : 'border-green-500'
-          }`}>
+          <div className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-bounce-in pointer-events-auto border-l-4 ${successMessage.action === 'ลบ' ? 'border-red-500' : 'border-green-500'
+            }`}>
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  successMessage.action === 'ลบ' ? 'bg-red-100' : 'bg-green-100'
-                }`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${successMessage.action === 'ลบ' ? 'bg-red-100' : 'bg-green-100'
+                  }`}>
                   {successMessage.action === 'ลบ' ? (
                     <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1149,9 +1309,8 @@ export default function SettingPage() {
                   หน้าจอ ID: <span className="font-semibold text-blue-600">{successMessage.id}</span>
                 </p>
                 <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
-                  <div className={`h-full animate-progress ${
-                    successMessage.action === 'ลบ' ? 'bg-red-500' : 'bg-green-500'
-                  }`} />
+                  <div className={`h-full animate-progress ${successMessage.action === 'ลบ' ? 'bg-red-500' : 'bg-green-500'
+                    }`} />
                 </div>
               </div>
               <button

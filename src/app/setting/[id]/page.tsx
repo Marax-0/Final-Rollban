@@ -348,6 +348,7 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                   >
                     <option value="single">Single</option>
                     <option value="duo">Duo</option>
+                    <option value="swap">Swap</option>
                     <option value="er">ER</option>
                   </select>
                 </div>
