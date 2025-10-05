@@ -65,6 +65,8 @@ export default function SettingPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState({ action: '', id: '' });
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // State สำหรับเก็บชื่อห้องแต่ละห้อง
   const [leftRooms, setLeftRooms] = useState<string[]>(['', '']);
@@ -74,6 +76,7 @@ export default function SettingPage() {
   const [swapCount, setSwapCount] = useState<number>(0);
   const [swapSelections, setSwapSelections] = useState<string[]>([]);
   const [availableSettings, setAvailableSettings] = useState<any[]>([]);
+  const [swapTimeWait, setSwapTimeWait] = useState<number>(2000); // default 20 วินาที (2000ms * 10 = 20000ms)
 
   // Fetch settings from database
   const fetchSettings = async () => {
@@ -269,7 +272,114 @@ export default function SettingPage() {
     // Reset swap modal state
     setSwapCount(0);
     setSwapSelections([]);
+    setSwapTimeWait(2000); // default 20 วินาที
     setShowModalSwap(true);
+  };
+
+  // Handle swap submit
+  const handleSwapSubmit = async () => {
+    setIsLoading(true);
+    try {
+      // ตรวจสอบว่าเลือก ID ครบทุกตัวแล้วหรือยัง
+      if (swapSelections.some(sel => !sel)) {
+        setErrorMessage('กรุณาเลือกหน้าจอให้ครบทุกช่อง');
+        setShowErrorPopup(true);
+        setIsLoading(false);
+        setTimeout(() => {
+          setShowErrorPopup(false);
+        }, 3000);
+        return;
+      }
+
+      // ดึง ID ล่าสุด + 1
+      const countResponse = await fetch('/api/setting/count');
+      const countData = await countResponse.json();
+      const nextId = (countData.maxId || 0) + 1;
+
+      // สร้าง listPage เป็น comma-separated string
+      const listPage = swapSelections.join(',');
+
+      // สร้าง payload สำหรับ Swap
+      const swapPayload = {
+        type: 'swap',
+        typeMonitor: nextId.toString(),
+        n_hospital: 'Swap Monitor',
+        n_department: 'Swap',
+        head_left: '',
+        head_right: '',
+        urgent_setup: 'ฉุกเฉิน',
+        time_wait: swapTimeWait,
+        amount_left: 0,
+        amount_right: 0,
+        arr_l: false,
+        arr_r: false,
+        set_descrip: false,
+        set_notice: false,
+        stem_surname: 'name',
+        stem_surname_popup: 'false',
+        stem_surname_table: 'name',
+        stem_name: 'name',
+        stem_name_table: 'name',
+        stem_name_popup: 'false',
+        urgent_color: true,
+        status_patient: true,
+        status_check: false,
+        lock_position: false,
+        lock_position_right: false,
+        urgent_level: true,
+        a_sound: true,
+        b_sound: false,
+        c_sound: false,
+        time_col: true,
+        station_left: '',
+        station_right: '',
+        query_left: '2',
+        query_right: '2',
+        listPage: listPage,
+      };
+
+      // บันทึกลง database
+      const response = await fetch('/api/setting/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(swapPayload),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Refresh data
+        await fetchSettings();
+        setShowModalSwap(false);
+        
+        // แสดง success popup
+        setSuccessMessage({
+          action: 'เพิ่ม',
+          id: result.id
+        });
+        setShowSuccessPopup(true);
+        
+        // ซ่อน popup อัตโนมัติหลัง 3 วินาที
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+        }, 3000);
+      } else {
+        setErrorMessage('เกิดข้อผิดพลาด: ' + result.message);
+        setShowErrorPopup(true);
+        setTimeout(() => {
+          setShowErrorPopup(false);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error submitting swap:', error);
+      setErrorMessage('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      setShowErrorPopup(true);
+      setTimeout(() => {
+        setShowErrorPopup(false);
+      }, 3000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ฟังก์ชันสำหรับจัดการเมื่อ amount เปลี่ยน
@@ -625,7 +735,11 @@ export default function SettingPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-600">{setting.head_left}</div>
+                      {setting.type === 'swap' ? (
+                        <div className="text-sm text-slate-400">-</div>
+                      ) : (
+                        <div className="text-sm text-slate-600">{setting.head_left}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {setting.type === 'duo' ? (
@@ -635,28 +749,36 @@ export default function SettingPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
-                          L: {setting.amount_left}
-                        </span>
-                        {setting.type === 'duo' && (
-                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
-                            R: {setting.amount_right}
+                      {setting.type === 'swap' ? (
+                        <div className="text-sm text-slate-400">-</div>
+                      ) : (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
+                            L: {setting.amount_left}
                           </span>
-                        )}
-                      </div>
+                          {setting.type === 'duo' && (
+                            <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
+                              R: {setting.amount_right}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
-                          L: {setting.query_left}
-                        </span>
-                        {setting.type === 'duo' && (
-                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
-                            R: {setting.query_right}
+                      {setting.type === 'swap' ? (
+                        <div className="text-sm text-slate-400">-</div>
+                      ) : (
+                        <div className="flex items-center space-x-2 text-sm">
+                          <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.03)', color: '#043566', borderColor: '#e2e8f0' }}>
+                            L: {setting.query_left}
                           </span>
-                        )}
-                      </div>
+                          {setting.type === 'duo' && (
+                            <span className="px-2 py-1 rounded-lg font-medium border shadow-sm" style={{ background: 'rgba(4, 53, 102, 0.05)', color: '#043566', borderColor: '#e2e8f0' }}>
+                              R: {setting.query_right}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center space-x-2">
@@ -743,6 +865,25 @@ export default function SettingPage() {
                   />
                 </div>
 
+                {/* เวลารอ (Time Wait) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    เวลาแสดงแต่ละหน้าจอ (หน่วย: ms)
+                  </label>
+                  <input
+                    type="number"
+                    min="300"
+                    step="100"
+                    value={swapTimeWait}
+                    onChange={(e) => setSwapTimeWait(parseInt(e.target.value) || 2000)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                    placeholder="2000"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    2000 = 20 วินาที (แนะนำ)
+                  </p>
+                </div>
+
                 {/* Dropdowns */}
                 {swapCount > 0 && (
                   <div className="space-y-4">
@@ -759,11 +900,13 @@ export default function SettingPage() {
                             className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all bg-white"
                           >
                             <option value="">-- เลือกหน้าจอ --</option>
-                            {availableSettings.map((setting) => (
-                              <option key={setting.id} value={setting.id}>
-                                ID: {setting.id} - {setting.n_hospital} ({setting.department})
-                              </option>
-                            ))}
+                            {availableSettings
+                              .filter(setting => setting.type !== 'swap') // กรองไม่ให้แสดงจอ type = swap
+                              .map((setting) => (
+                                <option key={setting.id} value={setting.id}>
+                                  ID: {setting.id} - {setting.n_hospital} ({setting.department})
+                                </option>
+                              ))}
                           </select>
                         </div>
                       ))}
@@ -784,15 +927,22 @@ export default function SettingPage() {
               </button>
               
               <button
-                onClick={() => {
-                  console.log('Swap Selections:', swapSelections);
-                  setShowModalSwap(false);
-                }}
-                className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 shadow hover:shadow-md transition-all duration-200"
+                onClick={handleSwapSubmit}
+                disabled={isLoading || swapCount === 0}
+                className="flex items-center space-x-2 px-5 py-2.5 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow hover:shadow-md transition-all duration-200"
                 style={{ background: 'linear-gradient(135deg, #043566, #065a9e)' }}
               >
-                <Save className="w-4 h-4" />
-                <span>บันทึก</span>
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>กำลังบันทึก...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>บันทึก</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1276,6 +1426,42 @@ export default function SettingPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Popup */}
+      {showErrorPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-bounce-in pointer-events-auto border-l-4 border-red-500">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-red-100">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900">
+                  ข้อมูลไม่ครบถ้วน
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {errorMessage}
+                </p>
+                <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full animate-progress bg-red-500" />
+                </div>
+              </div>
+              <button
+                onClick={() => setShowErrorPopup(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>

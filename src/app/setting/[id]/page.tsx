@@ -403,8 +403,8 @@ export default function EditSettingPage({ params }: { params: Promise<{ id: stri
                   <label className="block text-sm font-medium text-slate-700 mb-2">เวลารอ (วินาที)</label>
                   <input
                     type="number"
-                    value={payload.time_wait}
-                    onChange={(e) => setPayload(prev => ({ ...prev, time_wait: parseInt(e.target.value) }))}
+                    value={payload.time_wait || ''}
+                    onChange={(e) => setPayload(prev => ({ ...prev, time_wait: parseInt(e.target.value) || 0 }))}
                     className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 transition-all shadow-sm"
                     style={{ borderColor: '#e2e8f0' }}
                   />

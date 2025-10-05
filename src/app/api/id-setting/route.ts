@@ -4,7 +4,7 @@ import { getConnection } from '@/lib/db-config';
 export async function GET() {
   try {
     const connection = await getConnection();
-    const result = await connection.request().query('SELECT id, n_hospital, department FROM setting ORDER BY id');
+    const result = await connection.request().query('SELECT id, type, n_hospital, department FROM setting ORDER BY id');
     const settings = result.recordset || [];
     return NextResponse.json({ 
       success: true,
